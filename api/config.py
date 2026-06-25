@@ -24,7 +24,15 @@ class Settings(BaseSettings):
     # File storage
     output_dir: str = os.getenv("REPORTES_OUTPUT_DIR", "/app/reportes_generados")
     max_files_per_user: int = int(os.getenv("REPORTES_MAX_FILES_PER_USER", "100"))
-    rows_per_file: int = int(os.getenv("REPORTES_ROWS_PER_FILE", "1000000"))
+    # Per-format split thresholds. XLSX must stay under Excel's hard limit of
+    # 1,048,576 rows/sheet — 900k leaves margin for the metadata header rows.
+    # CSV has no such limit, so it can hold many more rows per part file.
+    xlsx_rows_per_file: int = int(os.getenv("REPORTES_XLSX_ROWS_PER_FILE", "900000"))
+    csv_rows_per_file: int = int(os.getenv("REPORTES_CSV_ROWS_PER_FILE", "2000000"))
+    # Above this estimated row count, force CSV output even if XLSX was
+    # requested: XLSX is ~4x larger and ~10-20x slower to write, and Excel
+    # struggles to open 200MB+ files. 0 disables the auto-switch.
+    auto_csv_row_threshold: int = int(os.getenv("REPORTES_AUTO_CSV_ROW_THRESHOLD", "500000"))
 
     # Security: own JWT secret — set REPORTES_SECRET_KEY in docker/.env-local
     secret_key: str = os.getenv("REPORTES_SECRET_KEY", "change-me-in-production")

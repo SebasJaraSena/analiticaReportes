@@ -1,7 +1,7 @@
 -- Reporte 1.7B: Participación por herramientas — por usuario y grupo/ficha.
--- Ajustes aplicados:
--- 2. Se quitaron del SELECT final las columnas no solicitadas.
--- 3. Foros y blogs ahora cuentan participaciones/interacciones, no solo creaciones.
+-- Cumple: comportamiento de usuarios matriculados en grupo/ficha,
+-- ingresos al AVA y conteo de participación por evidencia/herramienta.
+-- SOFIA Plus no está integrado; sus estados se reportan como no disponibles.
 
 WITH curso_parseado AS (
     SELECT
@@ -184,14 +184,14 @@ blogs AS (
     SELECT
         fp.userid,
         f.course AS courseid,
-        COUNT(DISTINCT fp.id) AS total
+        COUNT(fp.id) AS total
     FROM public.mdl_forum_discussions fd
     JOIN public.mdl_forum_posts fp
         ON fp.discussion = fd.id
+       AND fp.parent = 0
     JOIN public.mdl_forum f
         ON f.id = fd.forum
     WHERE f.type = 'blog'
-      AND fp.userid > 0
       AND (
             %(fecha_desde)s IS NULL
             OR (TO_TIMESTAMP(fp.created) AT TIME ZONE 'America/Bogota')::date >= %(fecha_desde)s::date
@@ -260,26 +260,23 @@ evidencias AS (
 
 foros AS (
     SELECT
-        mfp.userid,
+        mfd.userid,
         mf.course AS courseid,
-        COUNT(DISTINCT mfp.id) AS total
-    FROM public.mdl_forum_posts mfp
-    JOIN public.mdl_forum_discussions mfd
-        ON mfd.id = mfp.discussion
+        COUNT(DISTINCT mfd.id) AS total
+    FROM public.mdl_forum_discussions mfd
     JOIN public.mdl_forum mf
         ON mf.id = mfd.forum
     WHERE mf.type NOT IN ('news', 'blog')
-      AND mfp.userid > 0
       AND (
             %(fecha_desde)s IS NULL
-            OR (TO_TIMESTAMP(mfp.created) AT TIME ZONE 'America/Bogota')::date >= %(fecha_desde)s::date
+            OR (TO_TIMESTAMP(mfd.timemodified) AT TIME ZONE 'America/Bogota')::date >= %(fecha_desde)s::date
           )
       AND (
             %(fecha_hasta)s IS NULL
-            OR (TO_TIMESTAMP(mfp.created) AT TIME ZONE 'America/Bogota')::date <= %(fecha_hasta)s::date
+            OR (TO_TIMESTAMP(mfd.timemodified) AT TIME ZONE 'America/Bogota')::date <= %(fecha_hasta)s::date
           )
     GROUP BY
-        mfp.userid,
+        mfd.userid,
         mf.course
 ),
 
@@ -481,9 +478,17 @@ SELECT
         ELSE 'No definido'
     END AS "Nivel de formación",
 
+    CASE
+        WHEN bm.letra_modalidad = 'V' THEN 'Titulada virtual'
+        WHEN bm.letra_modalidad = 'A' THEN 'Titulada a distancia'
+        WHEN bm.letra_modalidad IN ('P', 'PI') THEN 'Titulada presencial'
+        ELSE 'No definido'
+    END AS "Modalidad",
+
     'No disponible (SOFIA Plus)' AS "Estado del Programa",
 
     bm.codigo_ficha AS "Código del grupo",
+    bm.nombre_ficha AS "Nombre del grupo/ficha",
 
     CASE
         WHEN bm.startdate = 0 THEN 'No definida'
@@ -504,8 +509,11 @@ SELECT
     bm.tipo_documento AS "Tipo de Identificación",
     bm.documento AS "Identificación",
     bm.nombres_apellidos AS "Nombres y apellidos",
+    bm.email AS "Correo",
 
+    bm.rol_usuario AS "Rol de usuario",
     bm.estado_usuario_grupo AS "Estado del usuario en el grupo",
+    bm.estado_usuario_lms AS "Estado del usuario LMS",
 
     CASE
         WHEN bm.visible = 0 THEN 'Oculto'
@@ -532,7 +540,21 @@ SELECT
     COALESCE(sc.total, 0) AS "Número de participaciones del usuario en SCORM",
     COALESCE(se.total, 0) AS "Número de sesiones en línea con participación del usuario",
     COALESCE(ch.total, 0) AS "Número de chats con participación del usuario",
-    COALESCE(an.total, 0) AS "Número de anuncios con participación del usuario"
+    COALESCE(an.total, 0) AS "Número de anuncios con participación del usuario",
+
+    (
+        COALESCE(w.total, 0)
+        + COALESCE(en.total, 0)
+        + COALESCE(fo.total, 0)
+        + COALESCE(co.total, 0)
+        + COALESCE(ev.total, 0)
+        + COALESCE(bl.total, 0)
+        + COALESCE(evi.total, 0)
+        + COALESCE(sc.total, 0)
+        + COALESCE(se.total, 0)
+        + COALESCE(ch.total, 0)
+        + COALESCE(an.total, 0)
+    ) AS "Total participaciones en herramientas"
 
 FROM base_matriculas bm
 
