@@ -1,5 +1,45 @@
 from api.reportes.registry import FiltroDefinicion, ReporteDefinicion, registrar
 
+_NIVELES = [
+    {"value": "", "label": "Todas"},
+    {"value": "Formación titulada", "label": "Formación titulada"},
+    {"value": "No definido", "label": "No definido"},
+]
+
+_MODALIDADES = [
+    {"value": "", "label": "Todas"},
+    {"value": "virtual", "label": "Virtual"},
+    {"value": "presencial", "label": "Presencial"},
+    {"value": "distancia", "label": "A distancia"},
+]
+
+_ESTADO_GRUPO = [
+    {"value": "", "label": "Todas"},
+    {"value": "En ejecución", "label": "En ejecución"},
+    {"value": "Finalizado", "label": "Finalizado"},
+    {"value": "No iniciado", "label": "No iniciado"},
+    {"value": "Oculto", "label": "Oculto"},
+]
+
+_ROLES = [
+    {"value": "", "label": "Todas"},
+    {"value": "student", "label": "Aprendiz"},
+    {"value": "teacher", "label": "Instructor"},
+    {"value": "editingteacher", "label": "Instructor editor"},
+]
+
+_ESTADO_APRENDIZ = [
+    {"value": "", "label": "Todas"},
+    {"value": "Activa", "label": "Activo"},
+    {"value": "Suspendida", "label": "Suspendido"},
+]
+
+_ORIGEN_DATOS = [
+    {"value": "", "label": "Todas"},
+    {"value": "Integración", "label": "Integración"},
+    {"value": "Manual", "label": "Manual"},
+]
+
 registrar(
     ReporteDefinicion(
         codigo="registro_usuarios",
@@ -9,40 +49,21 @@ registrar(
             "con información de rol, fechas de acceso y días de ingreso."
         ),
         filtros=[
-            FiltroDefinicion("codigo_ficha", "Código de Ficha/Grupo", "text",
-                             placeholder="Ej: 2750123"),
-            FiltroDefinicion("nombre_ficha", "Nombre de Ficha/Grupo", "text",
-                             placeholder="Búsqueda parcial"),
-            FiltroDefinicion("identificacion", "Número de Identificación", "text"),
-            FiltroDefinicion("nombres_apellidos", "Nombres y Apellidos", "text",
-                             placeholder="Búsqueda parcial"),
-            FiltroDefinicion("nivel", "Nivel", "select", opciones=[
-                {"value": "", "label": "Todos"},
-                {"value": "Formación titulada", "label": "Formación titulada"},
-                {"value": "No definido", "label": "No definido"},
-            ]),
-            FiltroDefinicion("modalidad", "Modalidad", "select", opciones=[
-                {"value": "", "label": "Todas"},
-                {"value": "presencial", "label": "Presencial"},
-                {"value": "virtual", "label": "Virtual"},
-                {"value": "distancia", "label": "A Distancia"},
-            ]),
-            FiltroDefinicion("regional", "Regional", "text"),
-            FiltroDefinicion("centro_formacion", "Centro de Formación", "text"),
-            FiltroDefinicion("estado_grupo", "Estado del Grupo", "select", opciones=[
-                {"value": "En ejecución", "label": "En ejecución"},
-                {"value": "Finalizado",   "label": "Finalizado"},
-                {"value": "No iniciado",  "label": "No iniciado"},
-                {"value": "Oculto",       "label": "Oculto"},
-            ]),
-            FiltroDefinicion("rol_usuario", "Rol del Usuario", "text",
-                             placeholder="Ej: student, teacher"),
-            FiltroDefinicion("fecha_inicio_desde", "Inicio Grupo Desde", "date"),
-            FiltroDefinicion("fecha_inicio_hasta", "Inicio Grupo Hasta", "date"),
-            FiltroDefinicion("fecha_fin_desde",   "Fin Grupo Desde",    "date"),
-            FiltroDefinicion("fecha_fin_hasta",   "Fin Grupo Hasta",    "date"),
-            FiltroDefinicion("fecha_consulta_desde", "Ingresos Desde", "date"),
-            FiltroDefinicion("fecha_consulta_hasta", "Ingresos Hasta", "date"),
+            FiltroDefinicion("nivel", "Nivel del programa", "select", opciones=_NIVELES),
+            FiltroDefinicion("modalidad", "Modalidad", "select", opciones=_MODALIDADES),
+            FiltroDefinicion("regional", "Regional", "text", placeholder="Todas"),
+            FiltroDefinicion("centro_formacion", "Centro de Formación", "text", placeholder="Todas"),
+            FiltroDefinicion("estado_grupo", "Estado del grupo/ficha", "select", opciones=_ESTADO_GRUPO),
+            FiltroDefinicion("rol_usuario", "Rol de usuario", "select", opciones=_ROLES),
+            FiltroDefinicion("estado_aprendiz", "Estado del aprendiz (SOFIA Plus)", "select", opciones=_ESTADO_APRENDIZ),
+            FiltroDefinicion("origen_datos", "Origen de datos", "select", opciones=_ORIGEN_DATOS),
+            FiltroDefinicion("codigo_ficha", "Código grupo/ficha", "text", placeholder="Todas"),
+            FiltroDefinicion("nombre_ficha", "Nombre grupo/ficha en el LMS", "text", placeholder="Todas"),
+            FiltroDefinicion("identificacion", "Identificación", "text", placeholder="Todas"),
+            FiltroDefinicion("nombres_apellidos", "Nombres y apellidos", "text", placeholder="Todas"),
+            FiltroDefinicion("fecha_inicio", "Fecha de inicio grupo/ficha", "date"),
+            FiltroDefinicion("fecha_fin", "Fecha fin grupo/ficha", "date"),
+            FiltroDefinicion("hora", "Hora", "text", placeholder="HH o HH:MM"),
         ],
     )
 )

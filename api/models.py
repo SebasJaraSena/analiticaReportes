@@ -25,6 +25,10 @@ class Solicitud(Base):
     archivo_ruta: Mapped[str | None] = mapped_column(Text)
     archivo_tamano: Mapped[int | None] = mapped_column(BigInteger)
     mensaje_error: Mapped[str | None] = mapped_column(Text)
+    filas_procesadas: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    partes_generadas: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    fecha_ultimo_progreso: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+    mensaje_progreso: Mapped[str | None] = mapped_column(Text)
     fecha_solicitud: Mapped[datetime] = mapped_column(
         DateTime(timezone=False), nullable=False, server_default=func.now()
     )
@@ -44,6 +48,10 @@ class Solicitud(Base):
             "archivo_nombre": self.archivo_nombre,
             "archivo_tamano": self.archivo_tamano,
             "mensaje_error": self.mensaje_error,
+            "filas_procesadas": self.filas_procesadas,
+            "partes_generadas": self.partes_generadas,
+            "fecha_ultimo_progreso": self.fecha_ultimo_progreso.isoformat() if self.fecha_ultimo_progreso else None,
+            "mensaje_progreso": self.mensaje_progreso,
             "fecha_solicitud": self.fecha_solicitud.isoformat() if self.fecha_solicitud else None,
             "fecha_inicio": self.fecha_inicio.isoformat() if self.fecha_inicio else None,
             "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,

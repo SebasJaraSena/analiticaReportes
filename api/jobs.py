@@ -26,6 +26,12 @@ from api.reportes.registry import get_reporte
 logger = logging.getLogger(__name__)
 
 FETCH_SIZE = 5_000  # rows per PostgreSQL FETCH batch
+PROGRESS_UPDATE_ROWS = 50_000
+PROGRESS_UPDATE_SECONDS = 5
+
+
+class ReportCancelled(Exception):
+    """Raised when a report request is cancelled while streaming."""
 
 
 def _null_if_empty(value: Any) -> Any:
@@ -69,6 +75,7 @@ def _stream_csv_parts(
     base_name: str,
     rows_per_file: int,
     meta_rows: list[tuple[str, str]] | None = None,
+    progress_callback=None,
 ) -> list[tuple[Path, int]]:
     """Stream cursor rows into numbered CSV part files. Always returns ≥1 entry."""
     # Named (server-side) cursors only populate description after first FETCH.
@@ -81,6 +88,7 @@ def _stream_csv_parts(
     current_writer = None
     current_path: Path | None = None
     rows_in_part = 0
+    total_rows = 0
 
     def _open_part() -> None:
         nonlocal part_num, current_file, current_writer, current_path, rows_in_part
@@ -104,13 +112,16 @@ def _stream_csv_parts(
             parts.append((current_path, rows_in_part))
 
     def _write_batch(batch: list) -> None:
-        nonlocal rows_in_part
+        nonlocal rows_in_part, total_rows
         for row in batch:
             if rows_in_part >= rows_per_file:
                 _close_part()
                 _open_part()
             current_writer.writerow(row)
             rows_in_part += 1
+            total_rows += 1
+        if progress_callback is not None:
+            progress_callback(total_rows, part_num)
 
     _open_part()
     try:
@@ -138,6 +149,7 @@ def _stream_xlsx_parts(
     base_name: str,
     rows_per_file: int,
     meta_rows: list[tuple[str, str]] | None = None,
+    progress_callback=None,
 ) -> list[tuple[Path, int]]:
     """Stream cursor rows into numbered XLSX part files (one sheet per file)."""
     import xlsxwriter
@@ -152,6 +164,7 @@ def _stream_xlsx_parts(
     current_ws = None
     current_path: Path | None = None
     rows_in_part = 0
+    total_rows = 0
     row_idx = 1
 
     def _open_part() -> None:
@@ -185,7 +198,7 @@ def _stream_xlsx_parts(
             parts.append((current_path, rows_in_part))
 
     def _write_batch(batch: list) -> None:
-        nonlocal rows_in_part, row_idx
+        nonlocal rows_in_part, total_rows, row_idx
         for row in batch:
             if rows_in_part >= rows_per_file:
                 _close_part()
@@ -195,6 +208,9 @@ def _stream_xlsx_parts(
                 current_ws.write(row_idx, col_idx, value if value is not None else "")
             row_idx += 1
             rows_in_part += 1
+            total_rows += 1
+        if progress_callback is not None:
+            progress_callback(total_rows, part_num)
 
     _open_part()
     try:
@@ -300,9 +316,16 @@ def process_report_job(solicitud_id: int) -> None:
         if solicitud is None:
             logger.error("Solicitud %d no encontrada.", solicitud_id)
             return
+        if solicitud.estado == "CANCELADO":
+            logger.info("[%d] Solicitud cancelada antes de iniciar.", solicitud_id)
+            return
 
         solicitud.estado = "PROCESANDO"
         solicitud.fecha_inicio = datetime.utcnow()
+        solicitud.filas_procesadas = 0
+        solicitud.partes_generadas = 0
+        solicitud.fecha_ultimo_progreso = datetime.utcnow()
+        solicitud.mensaje_progreso = "Iniciando generación del reporte."
         db.commit()
         logger.info("[%d] Iniciando reporte '%s'.", solicitud_id, solicitud.reporte_codigo)
 
@@ -319,6 +342,34 @@ def process_report_job(solicitud_id: int) -> None:
 
         base_name = f"reporte_{solicitud_id}"
         t0 = time.perf_counter()
+        last_progress_rows = 0
+        last_progress_time = time.monotonic()
+
+        def _update_progress(total_rows: int, part_count: int, force: bool = False) -> None:
+            nonlocal last_progress_rows, last_progress_time
+            now = time.monotonic()
+            if (
+                not force
+                and total_rows - last_progress_rows < PROGRESS_UPDATE_ROWS
+                and now - last_progress_time < PROGRESS_UPDATE_SECONDS
+            ):
+                return
+
+            db.refresh(solicitud)
+            if solicitud.estado == "CANCELADO":
+                raise ReportCancelled()
+
+            solicitud.filas_procesadas = total_rows
+            solicitud.partes_generadas = max(part_count, 1)
+            solicitud.fecha_ultimo_progreso = datetime.utcnow()
+            solicitud.mensaje_progreso = (
+                f"{total_rows:,} filas exportadas en {max(part_count, 1)} parte(s)."
+            )
+            db.commit()
+            last_progress_rows = total_rows
+            last_progress_time = now
+
+        _update_progress(0, 1, force=True)
 
         # Named (server-side) cursor — true streaming from PostgreSQL
         with get_moodle_conn() as conn:
@@ -326,12 +377,39 @@ def process_report_job(solicitud_id: int) -> None:
             with conn.cursor(cursor_name, cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(sql, params)
                 if solicitud.formato == "csv":
-                    parts = _stream_csv_parts(cur, tmp_dir, base_name, settings.rows_per_file, meta_rows)
+                    parts = _stream_csv_parts(
+                        cur,
+                        tmp_dir,
+                        base_name,
+                        settings.rows_per_file,
+                        meta_rows,
+                        _update_progress,
+                    )
                 else:
-                    parts = _stream_xlsx_parts(cur, tmp_dir, base_name, settings.rows_per_file, meta_rows)
+                    parts = _stream_xlsx_parts(
+                        cur,
+                        tmp_dir,
+                        base_name,
+                        settings.rows_per_file,
+                        meta_rows,
+                        _update_progress,
+                    )
 
         total_rows = sum(rc for _, rc in parts)
         elapsed = time.perf_counter() - t0
+        _update_progress(total_rows, len(parts), force=True)
+
+        db.refresh(solicitud)
+        if solicitud.estado == "CANCELADO":
+            logger.info("[%d] Solicitud cancelada durante la generación.", solicitud_id)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            tmp_dir = None
+            for part_path, _ in parts:
+                try:
+                    Path(part_path).unlink(missing_ok=True)
+                except OSError:
+                    logger.warning("[%d] No se pudo eliminar parte temporal: %s", solicitud_id, part_path)
+            return
 
         if len(parts) == 1:
             final_path, filename = _output_path(
@@ -372,6 +450,12 @@ def process_report_job(solicitud_id: int) -> None:
         solicitud.archivo_nombre = filename
         solicitud.archivo_ruta = str(final_path)
         solicitud.archivo_tamano = file_size
+        solicitud.filas_procesadas = total_rows
+        solicitud.partes_generadas = len(parts)
+        solicitud.fecha_ultimo_progreso = datetime.utcnow()
+        solicitud.mensaje_progreso = (
+            f"Reporte finalizado: {total_rows:,} filas en {len(parts)} parte(s)."
+        )
         solicitud.token_descarga = token
         db.commit()
 
@@ -381,12 +465,27 @@ def process_report_job(solicitud_id: int) -> None:
             db.rollback()
             logger.exception("[%d] No fue posible limpiar archivos antiguos.", solicitud_id)
 
+    except ReportCancelled:
+        logger.info("[%d] Generación cancelada por el usuario.", solicitud_id)
+        if tmp_dir is not None:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        if solicitud is not None:
+            try:
+                solicitud.fecha_fin = datetime.utcnow()
+                solicitud.mensaje_error = "Solicitud cancelada por el usuario."
+                solicitud.mensaje_progreso = "Generación cancelada."
+                db.commit()
+            except Exception:
+                db.rollback()
     except Exception as exc:
         logger.exception("[%d] Error en reporte.", solicitud_id)
         if tmp_dir is not None:
             shutil.rmtree(tmp_dir, ignore_errors=True)
         if solicitud is not None:
             try:
+                db.refresh(solicitud)
+                if solicitud.estado == "CANCELADO":
+                    return
                 solicitud.estado = "ERROR"
                 solicitud.fecha_fin = datetime.utcnow()
                 solicitud.mensaje_error = str(exc)[:2000]

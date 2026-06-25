@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -16,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from redis import Redis
 from rq import Queue
+from rq.registry import StartedJobRegistry
 from sqlalchemy.orm import Session
 
 from api.auth import CurrentUser, CurrentAdmin, get_current_user, get_current_admin
@@ -34,11 +36,132 @@ def _media_type(solicitud: Solicitud) -> str:
     return "text/csv"
 
 
+def _validate_required_filters(reporte, filtros: dict[str, Any]) -> None:
+    missing = [
+        f.etiqueta
+        for f in reporte.filtros
+        if f.requerido and _build_params(filtros or {}, reporte.codigo).get(f.nombre) is None
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail="Faltan filtros obligatorios: " + ", ".join(missing),
+        )
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+_ROLE_LABELS = {
+    "manager": "Gestor",
+    "coursecreator": "Creador de cursos",
+    "editingteacher": "Instructor editor",
+    "teacher": "Instructor",
+    "student": "Aprendiz",
+}
+_DYNAMIC_FILTER_CACHE: dict[str, Any] = {"expires_at": 0.0, "options": {}}
+_DYNAMIC_FILTER_TTL_SECONDS = 300
+
+
+def _moodle_role_label(shortname: str, name: str | None) -> str:
+    clean_name = (name or "").strip()
+    return clean_name or _ROLE_LABELS.get(shortname, shortname)
+
+
+def _get_dynamic_filter_options() -> dict[str, list[dict[str, str]]]:
+    now = time.monotonic()
+    cached = _DYNAMIC_FILTER_CACHE.get("options") or {}
+    if cached and now < float(_DYNAMIC_FILTER_CACHE.get("expires_at", 0.0)):
+        return cached
+
+    options: dict[str, list[dict[str, str]]] = {
+        "rol_usuario": [{"value": "", "label": "Todas"}],
+        "modalidad": [{"value": "", "label": "Todas"}],
+        "nivel": [
+            {"value": "", "label": "Todas"},
+            {"value": "Formación titulada", "label": "Formación titulada"},
+            {"value": "No definido", "label": "No definido"},
+        ],
+        "id_categoria": [{"value": "", "label": "Todas"}],
+    }
+
+    try:
+        with get_moodle_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT shortname, name
+                    FROM public.mdl_role
+                    WHERE shortname NOT IN ('guest', 'user', 'frontpage')
+                    ORDER BY sortorder, id
+                    """
+                )
+                for row in cur.fetchall():
+                    shortname = row["shortname"]
+                    options["rol_usuario"].append(
+                        {"value": shortname, "label": _moodle_role_label(shortname, row.get("name"))}
+                    )
+
+                cur.execute(
+                    """
+                    WITH modalidades AS (
+                        SELECT DISTINCT
+                            CASE
+                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') = 'V'
+                                    THEN 'Titulada virtual'
+                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') = 'A'
+                                    THEN 'Titulada a distancia'
+                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') IN ('P', 'PI')
+                                    THEN 'Titulada presencial'
+                            END AS modalidad
+                        FROM public.mdl_course
+                        WHERE id <> 1
+                    )
+                    SELECT modalidad
+                    FROM modalidades
+                    WHERE modalidad IS NOT NULL
+                    ORDER BY modalidad
+                    """
+                )
+                for row in cur.fetchall():
+                    modalidad = row["modalidad"]
+                    options["modalidad"].append({"value": modalidad, "label": modalidad})
+
+                cur.execute(
+                    """
+                    SELECT id, name
+                    FROM public.mdl_course_categories
+                    ORDER BY sortorder, id
+                    """
+                )
+                for row in cur.fetchall():
+                    options["id_categoria"].append(
+                        {"value": str(row["id"]), "label": row["name"]}
+                    )
+    except Exception as exc:
+        logger.warning("No fue posible cargar filtros dinámicos desde Moodle: %s", exc)
+
+    _DYNAMIC_FILTER_CACHE["options"] = options
+    _DYNAMIC_FILTER_CACHE["expires_at"] = now + _DYNAMIC_FILTER_TTL_SECONDS
+    return options
+
+
+def _hydrate_dynamic_filters(filtros: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    dynamic_options = _get_dynamic_filter_options()
+    for filtro in filtros:
+        nombre = filtro.get("nombre")
+        if nombre in dynamic_options:
+            filtro["tipo"] = "select"
+            filtro["opciones"] = dynamic_options[nombre]
+            if nombre == "id_categoria":
+                filtro["etiqueta"] = "Categoría del curso"
+            if nombre == "modalidad":
+                filtro["placeholder"] = "Todas"
+    return filtros
+
 
 app = FastAPI(
     title="Reportes ZAJUNA",
@@ -155,7 +278,7 @@ def get_filtros(codigo: str, current_user: CurrentUser) -> dict:
         "codigo": r.codigo,
         "nombre": r.nombre,
         "descripcion": r.descripcion,
-        "filtros": r.filtros_dict(),
+        "filtros": _hydrate_dynamic_filters(r.filtros_dict()),
     }
 
 
@@ -174,6 +297,7 @@ def generar_reporte(
         raise HTTPException(status_code=400, detail="Formato debe ser 'xlsx' o 'csv'.")
 
     reporte = REPORTES[codigo]
+    _validate_required_filters(reporte, body.filtros or {})
 
     solicitud = Solicitud(
         reporte_codigo=codigo,
@@ -216,6 +340,7 @@ def preview_reporte(
         raise HTTPException(status_code=404, detail=f"Reporte '{codigo}' no encontrado.")
 
     reporte = get_reporte(codigo)
+    _validate_required_filters(reporte, body.filtros or {})
     sql = reporte.load_sql()
     params = _build_params(body.filtros or {}, codigo)
 
@@ -271,6 +396,45 @@ def get_solicitud(
     if s.usuario_email != current_user:
         raise HTTPException(status_code=403, detail="No tienes permiso para ver esta solicitud.")
     return s.to_dict()
+
+
+@app.post("/api/solicitudes/{solicitud_id}/cancelar")
+def cancelar_solicitud(
+    solicitud_id: int,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+    queue: Queue = Depends(get_queue),
+) -> dict:
+    s = db.get(Solicitud, solicitud_id)
+    if s is None:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada.")
+    if s.usuario_email != current_user:
+        raise HTTPException(status_code=403, detail="No tienes permiso para cancelar esta solicitud.")
+    if s.estado not in ("PENDIENTE", "PROCESANDO"):
+        raise HTTPException(status_code=409, detail=f"No se puede cancelar una solicitud en estado '{s.estado}'.")
+
+    removed = False
+    for job_id in list(queue.job_ids):
+        job = queue.fetch_job(job_id)
+        if job and job.args and job.args[0] == solicitud_id:
+            job.cancel()
+            job.delete()
+            removed = True
+
+    StartedJobRegistry(queue.name, connection=queue.connection).cleanup()
+
+    s.estado = "CANCELADO"
+    s.fecha_fin = datetime.utcnow()
+    s.mensaje_error = "Solicitud cancelada por el usuario."
+    db.commit()
+
+    return {
+        "ok": True,
+        "solicitud_id": solicitud_id,
+        "estado": s.estado,
+        "job_en_cola_cancelado": removed,
+        "message": "Solicitud cancelada.",
+    }
 
 
 @app.get("/api/solicitudes/{solicitud_id}/descargar-email")

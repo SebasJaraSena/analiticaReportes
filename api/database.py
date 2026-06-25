@@ -47,6 +47,10 @@ def init_control_db() -> None:
         archivo_ruta   TEXT,
         archivo_tamano BIGINT,
         mensaje_error  TEXT,
+        filas_procesadas BIGINT NOT NULL DEFAULT 0,
+        partes_generadas INTEGER NOT NULL DEFAULT 0,
+        fecha_ultimo_progreso TIMESTAMP,
+        mensaje_progreso TEXT,
         fecha_solicitud  TIMESTAMP NOT NULL DEFAULT NOW(),
         fecha_inicio     TIMESTAMP,
         fecha_fin        TIMESTAMP,
@@ -77,6 +81,11 @@ def init_control_db() -> None:
     migrate_ddl = """
     ALTER TABLE reportes_users
         ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE reportes_zajuna_solicitudes
+        ADD COLUMN IF NOT EXISTS filas_procesadas BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS partes_generadas INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS fecha_ultimo_progreso TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS mensaje_progreso TEXT;
     """
     with _control_engine.connect() as conn:
         conn.execute(text(ddl))

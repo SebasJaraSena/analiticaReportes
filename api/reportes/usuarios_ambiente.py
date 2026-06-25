@@ -1,5 +1,11 @@
 from api.reportes.registry import FiltroDefinicion, ReporteDefinicion, registrar
 
+_ORIGEN_DATOS = [
+    {"value": "", "label": "Todas"},
+    {"value": "Manual", "label": "Manual"},
+    {"value": "Integración / Externo", "label": "Integración / Externo"},
+]
+
 registrar(
     ReporteDefinicion(
         codigo="usuarios_ambiente",
@@ -9,15 +15,11 @@ registrar(
             "fecha de creación y último acceso."
         ),
         filtros=[
-            FiltroDefinicion("identificacion",   "Identificación",       "text", placeholder="Número de documento"),
-            FiltroDefinicion("nombres_apellidos","Nombres y Apellidos",  "text", placeholder="Búsqueda parcial"),
-            FiltroDefinicion("estado", "Estado", "select", opciones=[
-                {"value": "Activo",     "label": "Activo"},
-                {"value": "Suspendido", "label": "Suspendido"},
-                {"value": "Eliminado",  "label": "Eliminado"},
-            ]),
-            FiltroDefinicion("fecha_desde", "Fecha Creación Desde", "date"),
-            FiltroDefinicion("fecha_hasta", "Fecha Creación Hasta", "date"),
+            FiltroDefinicion("mes", "Mes", "text", placeholder="Todas"),
+            FiltroDefinicion("anio", "Año", "text", placeholder="Todas"),
+            FiltroDefinicion("origen_datos", "Origen de datos", "select", opciones=_ORIGEN_DATOS),
+            FiltroDefinicion("fecha_desde", "Rango de fecha de consulta desde", "date"),
+            FiltroDefinicion("fecha_hasta", "Rango de fecha de consulta hasta", "date"),
         ],
     )
 )

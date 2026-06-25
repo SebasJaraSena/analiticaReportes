@@ -113,6 +113,14 @@
     .preview-wrap th { position: sticky; top: 0; background: var(--primary); color: #fff; padding: .45rem .7rem; font-size: .78rem; white-space: nowrap; }
     .preview-wrap td { padding: .4rem .7rem; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
     .preview-count { font-size: .8rem; color: var(--muted); margin-bottom: .5rem; }
+    .chart-panel { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #fff; }
+    .chart-panel h4 { font-size: .95rem; color: var(--primary); margin-bottom: .25rem; }
+    .chart-subtitle { font-size: .78rem; color: var(--muted); margin-bottom: .85rem; }
+    .bar-chart { display: flex; align-items: end; gap: .5rem; height: 180px; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: .5rem .5rem 0; overflow-x: auto; }
+    .bar-item { min-width: 54px; display: flex; flex-direction: column; align-items: center; justify-content: end; gap: .35rem; height: 100%; }
+    .bar-value { font-size: .7rem; color: var(--muted); white-space: nowrap; }
+    .bar { width: 32px; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--accent); }
+    .bar-label { font-size: .68rem; color: var(--muted); white-space: nowrap; }
 
     /* Login screen */
     #login-screen {
@@ -231,6 +239,7 @@
       <!-- Preview section -->
       <div class="preview-section hidden" id="preview-section">
         <h3 id="preview-title">Vista previa</h3>
+        <div id="preview-chart" class="hidden"></div>
         <div class="preview-count" id="preview-count"></div>
         <div class="preview-wrap" id="preview-table-wrap"></div>
       </div>
@@ -257,6 +266,7 @@
             <th>Reporte</th>
             <th>Formato</th>
             <th>Estado</th>
+            <th>Progreso</th>
             <th>Solicitado</th>
             <th>Finalizado</th>
             <th>Tamaño</th>
@@ -264,7 +274,7 @@
           </tr>
         </thead>
         <tbody id="solicitudes-tbody">
-          <tr><td colspan="8" class="empty">Cargando…</td></tr>
+          <tr><td colspan="9" class="empty">Cargando…</td></tr>
         </tbody>
       </table>
     </div>
@@ -501,6 +511,8 @@
     document.getElementById('filtros-alert').className = 'hidden';
     document.getElementById('preview-section').classList.add('hidden');
     document.getElementById('preview-table-wrap').innerHTML = '';
+    document.getElementById('preview-chart').className = 'hidden';
+    document.getElementById('preview-chart').innerHTML = '';
 
     try {
       const res = await authFetch(API + '/api/reportes/' + codigo + '/filtros');
@@ -581,6 +593,11 @@
         } else if (data.estado === 'ERROR') {
           stopPolling();
           showAlert('filtros-alert', 'error', `❌ Error al generar el reporte: ${data.mensaje_error || 'Error desconocido'}`);
+        } else if (data.estado === 'CANCELADO') {
+          stopPolling();
+          showAlert('filtros-alert', 'info', 'Solicitud cancelada.');
+        } else if (data.estado === 'PROCESANDO') {
+          showAlert('filtros-alert', 'info', progressText(data));
         }
       } catch (_) {}
     }, 4000);
@@ -590,24 +607,37 @@
     if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
   }
 
+  function formatNumber(n) {
+    return Number(n || 0).toLocaleString('es-CO');
+  }
+
+  function progressText(s) {
+    const rows = formatNumber(s.filas_procesadas || 0);
+    const parts = s.partes_generadas || 0;
+    const updated = s.fecha_ultimo_progreso
+      ? ` · actualizado ${s.fecha_ultimo_progreso.replace('T', ' ').slice(11, 19)}`
+      : '';
+    return `Procesando: ${rows} filas exportadas · ${parts || 1} parte(s)${updated}`;
+  }
+
   // ── Load solicitudes ──────────────────────────────────────────────────────
   async function loadSolicitudes() {
     const tbody = document.getElementById('solicitudes-tbody');
-    tbody.innerHTML = '<tr><td colspan="8" class="empty"><span class="spin">⏳</span> Cargando…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty"><span class="spin">⏳</span> Cargando…</td></tr>';
 
     try {
       const res = await authFetch(API + '/api/solicitudes?limit=100');
       const data = await res.json();
 
       if (!data.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay solicitudes aún.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">No hay solicitudes aún.</td></tr>';
         return;
       }
 
       tbody.innerHTML = data.map(s => {
         const badgeClass = {
           PENDIENTE: 'badge-pending', PROCESANDO: 'badge-process',
-          FINALIZADO: 'badge-done', ERROR: 'badge-error',
+          FINALIZADO: 'badge-done', ERROR: 'badge-error', CANCELADO: 'badge-error',
         }[s.estado] || 'badge-pending';
 
         const size = s.archivo_tamano
@@ -617,11 +647,18 @@
           : '—';
 
         const fmtDate = dt => dt ? dt.replace('T', ' ').slice(0, 16) : '—';
+        const progress = (s.filas_procesadas || s.partes_generadas || ['PENDIENTE', 'PROCESANDO'].includes(s.estado))
+          ? `<strong>${formatNumber(s.filas_procesadas || 0)}</strong> filas<br><span style="font-size:.75rem;color:var(--muted);">${s.partes_generadas || 1} parte(s)</span>`
+          : '—';
 
         const actionBtn = s.estado === 'FINALIZADO'
           ? `<button class="btn btn-primary btn-sm" onclick="doDownload(${s.id}, event)">⬇ Descargar</button>`
           : s.estado === 'ERROR'
           ? `<span title="${s.mensaje_error || ''}" style="color:var(--danger);font-size:.8rem;cursor:help;">Ver error ⓘ</span>`
+          : ['PENDIENTE', 'PROCESANDO'].includes(s.estado)
+          ? `<button class="btn btn-danger btn-sm" onclick="cancelSolicitud(${s.id}, event)">Cancelar</button>`
+          : s.estado === 'CANCELADO'
+          ? `<span style="color:var(--muted);font-size:.8rem;">Cancelado</span>`
           : `<span class="badge ${badgeClass}">${s.estado}</span>`;
 
         return `<tr>
@@ -629,6 +666,7 @@
           <td><strong>${s.reporte_nombre}</strong><br><span style="font-size:.75rem;color:var(--muted)">${s.reporte_codigo}</span></td>
           <td>${(s.formato || 'xlsx').toUpperCase()}</td>
           <td><span class="badge ${badgeClass}">${s.estado}</span></td>
+          <td style="white-space:nowrap">${progress}</td>
           <td style="white-space:nowrap">${fmtDate(s.fecha_solicitud)}</td>
           <td style="white-space:nowrap">${fmtDate(s.fecha_fin)}</td>
           <td>${size}</td>
@@ -637,7 +675,7 @@
       }).join('');
     } catch (e) {
       if (e.message !== 'Unauthorized')
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">Error cargando solicitudes.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">Error cargando solicitudes.</td></tr>';
     }
   }
 
@@ -664,6 +702,22 @@
       URL.revokeObjectURL(url);
     } catch (e) {
       if (e.message !== 'Unauthorized') alert('Error al descargar el archivo.');
+    }
+  }
+
+  async function cancelSolicitud(solicitudId, event) {
+    if (event) event.preventDefault();
+    if (!confirm('¿Cancelar esta solicitud?')) return;
+    try {
+      const res = await authFetch(API + '/api/solicitudes/' + solicitudId + '/cancelar', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'No se pudo cancelar.');
+      showAlert('solicitudes-alert', 'info', 'Solicitud cancelada.');
+      loadSolicitudes();
+    } catch (e) {
+      if (e.message !== 'Unauthorized') alert('Error al cancelar: ' + e.message);
     }
   }
 
@@ -814,16 +868,56 @@
   });
 
   // ── Preview ───────────────────────────────────────────────────────────────
+  function renderPreviewChart(data) {
+    const chart = document.getElementById('preview-chart');
+    if (currentReporteCodigo !== 'uso_herramientas' || !data || !data.rows || !data.rows.length) {
+      chart.className = 'hidden';
+      chart.innerHTML = '';
+      return;
+    }
+
+    const toolColumns = data.columns.filter(c => c.startsWith('Cantidad de '));
+    const totals = toolColumns.map(col => ({
+      label: col.replace('Cantidad de ', ''),
+      total: data.rows.reduce((sum, row) => sum + (Number(row[col]) || 0), 0),
+    })).filter(item => item.total > 0);
+
+    if (!totals.length) {
+      chart.className = 'hidden';
+      chart.innerHTML = '';
+      return;
+    }
+
+    const maxValue = Math.max(...totals.map(x => x.total), 1);
+    const bars = totals.map(item => {
+      const height = Math.max(2, Math.round((item.total / maxValue) * 130));
+      const label = item.label.length > 13 ? item.label.slice(0, 12) + '…' : item.label;
+      return `<div class="bar-item" title="${item.label}: ${formatNumber(item.total)}">
+        <div class="bar-value">${formatNumber(item.total)}</div>
+        <div class="bar" style="height:${height}px"></div>
+        <div class="bar-label">${label}</div>
+      </div>`;
+    }).join('');
+
+    chart.className = 'chart-panel';
+    chart.innerHTML = `<h4>Resumen visual de herramientas</h4>
+      <div class="chart-subtitle">Totales calculados con las filas mostradas en la vista previa.</div>
+      <div class="bar-chart">${bars}</div>`;
+  }
+
   async function previewReporte() {
     const btn = document.getElementById('btn-preview');
     const section = document.getElementById('preview-section');
     const wrap = document.getElementById('preview-table-wrap');
     const countEl = document.getElementById('preview-count');
+    const chart = document.getElementById('preview-chart');
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spin">⏳</span> Cargando…';
     section.classList.remove('hidden');
     wrap.innerHTML = '<div class="empty"><span class="spin">⏳</span> Consultando…</div>';
+    chart.className = 'hidden';
+    chart.innerHTML = '';
     countEl.textContent = '';
 
     const filtros = {};
@@ -839,6 +933,8 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Error desconocido');
+
+      renderPreviewChart(data);
 
       if (!data.rows.length) {
         wrap.innerHTML = '<div class="empty" style="padding:1.5rem">Sin resultados con los filtros actuales.</div>';
