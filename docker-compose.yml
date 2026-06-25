@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:16
+    container_name: reportes_db
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - reportes_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "reportes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: reportes_redis
+    restart: unless-stopped
+    volumes:
+      - reportes_redis:/data
+
+  reportes-api:
+    build: .
+    container_name: reportes_api
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    env_file: .env
+    environment:
+      - REPORTES_OUTPUT_DIR=/app/reportes_generados
+    volumes:
+      - reportes_generados:/app/reportes_generados
+      - ./api/sql:/app/api/sql:ro
+      - ./api/reportes:/app/api/reportes:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8089/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  reportes-worker:
+    build: .
+    container_name: reportes_worker
+    restart: unless-stopped
+    command: ["python", "worker_start.py"]
+    env_file: .env
+    environment:
+      - REPORTES_OUTPUT_DIR=/app/reportes_generados
+    volumes:
+      - reportes_generados:/app/reportes_generados
+      - ./api/sql:/app/api/sql:ro
+      - ./api/reportes:/app/api/reportes:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  reportes_db:
+  reportes_redis:
+  reportes_generados:
