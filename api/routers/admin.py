@@ -35,7 +35,7 @@ class UpdateUserRequest(BaseModel):
 
 
 @router.get("/users")
-def list_users(db: Session = Depends(get_db), _: CurrentAdmin) -> list[dict]:
+def list_users(_: CurrentAdmin, db: Session = Depends(get_db)) -> list[dict]:
     users = db.query(ReporteUser).order_by(ReporteUser.id).all()
     return [
         {
@@ -53,8 +53,8 @@ def list_users(db: Session = Depends(get_db), _: CurrentAdmin) -> list[dict]:
 @router.post("/users", status_code=201)
 def create_user(
     body: CreateUserRequest,
-    db: Session = Depends(get_db),
     _: CurrentAdmin,
+    db: Session = Depends(get_db),
 ) -> dict:
     if db.query(ReporteUser).filter(ReporteUser.email == body.email).first():
         raise HTTPException(status_code=409, detail="Ya existe un usuario con ese correo.")
@@ -77,8 +77,8 @@ def create_user(
 def update_user(
     user_id: int,
     body: UpdateUserRequest,
-    db: Session = Depends(get_db),
     _: CurrentAdmin,
+    db: Session = Depends(get_db),
 ) -> dict:
     user = db.get(ReporteUser, user_id)
     if user is None:
@@ -102,8 +102,8 @@ def update_user(
 @router.delete("/users/{user_id}")
 def delete_user(
     user_id: int,
-    db: Session = Depends(get_db),
     _: CurrentAdmin,
+    db: Session = Depends(get_db),
 ) -> dict:
     user = db.get(ReporteUser, user_id)
     if user is None:

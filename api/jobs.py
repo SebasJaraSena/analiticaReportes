@@ -25,7 +25,7 @@ from api.reportes.registry import get_reporte
 
 logger = logging.getLogger(__name__)
 
-FETCH_SIZE = 5_000  # rows per PostgreSQL FETCH batch
+FETCH_SIZE = 20_000  # rows per PostgreSQL FETCH batch
 PROGRESS_UPDATE_ROWS = 50_000
 PROGRESS_UPDATE_SECONDS = 5
 
@@ -203,9 +203,11 @@ def _stream_xlsx_parts(
             if rows_in_part >= rows_per_file:
                 _close_part()
                 _open_part()
-            for col_idx, col_name in enumerate(columns):
-                value = row.get(col_name)
-                current_ws.write(row_idx, col_idx, value if value is not None else "")
+            current_ws.write_row(
+                row_idx,
+                0,
+                [row[c] if row[c] is not None else "" for c in columns],
+            )
             row_idx += 1
             rows_in_part += 1
             total_rows += 1
@@ -250,6 +252,24 @@ def _pack_zip(
             "manifest.json",
             json.dumps(manifest, ensure_ascii=False, indent=2),
         )
+
+
+def _estimate_rows(conn, sql: str, params: dict) -> int:
+    """Estimate result row count via the PostgreSQL planner (no execution).
+
+    Returns -1 if the estimate cannot be obtained.
+    """
+    try:
+        with conn.cursor() as cur:
+            cur.execute("EXPLAIN (FORMAT JSON) " + sql, params)
+            row = cur.fetchone()
+            # The connection uses RealDictCursor, so EXPLAIN returns
+            # {"QUERY PLAN": [...]}; fall back to positional access otherwise.
+            plan = row["QUERY PLAN"] if isinstance(row, dict) else row[0]
+            return int(plan[0]["Plan"]["Plan Rows"])
+    except Exception:
+        logger.warning("No se pudo estimar filas con EXPLAIN.", exc_info=True)
+        return -1
 
 
 def cleanup_old_report_files(db, usuario_email: str | None = None) -> int:
@@ -371,17 +391,36 @@ def process_report_job(solicitud_id: int) -> None:
 
         _update_progress(0, 1, force=True)
 
+        # Effective output format — may be downgraded to CSV for big reports.
+        formato = solicitud.formato
+
         # Named (server-side) cursor — true streaming from PostgreSQL
         with get_moodle_conn() as conn:
+            # Auto-switch XLSX → CSV when the planner estimates a large result:
+            # XLSX is far slower/heavier and Excel cannot open huge files.
+            if formato == "xlsx" and settings.auto_csv_row_threshold > 0:
+                est_rows = _estimate_rows(conn, sql, params)
+                if est_rows >= settings.auto_csv_row_threshold:
+                    formato = "csv"
+                    logger.info(
+                        "[%d] Auto-cambio XLSX→CSV: ~%d filas estimadas (umbral %d).",
+                        solicitud_id, est_rows, settings.auto_csv_row_threshold,
+                    )
+                    solicitud.mensaje_progreso = (
+                        f"Reporte grande (~{est_rows:,} filas): se genera CSV "
+                        f"para mayor velocidad y compatibilidad."
+                    )
+                    db.commit()
+
             cursor_name = f"rpt_{solicitud_id}"
             with conn.cursor(cursor_name, cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(sql, params)
-                if solicitud.formato == "csv":
+                if formato == "csv":
                     parts = _stream_csv_parts(
                         cur,
                         tmp_dir,
                         base_name,
-                        settings.rows_per_file,
+                        settings.csv_rows_per_file,
                         meta_rows,
                         _update_progress,
                     )
@@ -390,7 +429,7 @@ def process_report_job(solicitud_id: int) -> None:
                         cur,
                         tmp_dir,
                         base_name,
-                        settings.rows_per_file,
+                        settings.xlsx_rows_per_file,
                         meta_rows,
                         _update_progress,
                     )
@@ -413,7 +452,7 @@ def process_report_job(solicitud_id: int) -> None:
 
         if len(parts) == 1:
             final_path, filename = _output_path(
-                solicitud_id, solicitud.usuario_email or "anonimo", solicitud.formato
+                solicitud_id, solicitud.usuario_email or "anonimo", formato
             )
             shutil.move(str(parts[0][0]), str(final_path))
         else:
@@ -423,7 +462,7 @@ def process_report_job(solicitud_id: int) -> None:
             manifest = {
                 "reporte": solicitud.reporte_codigo,
                 "filtros": solicitud.filtros or {},
-                "formato": solicitud.formato,
+                "formato": formato,
                 "total_filas": total_rows,
                 "total_partes": len(parts),
                 "filas_por_parte": [
@@ -447,6 +486,7 @@ def process_report_job(solicitud_id: int) -> None:
 
         solicitud.estado = "FINALIZADO"
         solicitud.fecha_fin = datetime.utcnow()
+        solicitud.formato = formato
         solicitud.archivo_nombre = filename
         solicitud.archivo_ruta = str(final_path)
         solicitud.archivo_tamano = file_size
