@@ -110,6 +110,6 @@ WHERE (%(codigo_ficha)s IS NULL OR cp.idnumber ILIKE '%%' || %(codigo_ficha)s ||
   AND (%(fecha_desde)s IS NULL OR TO_TIMESTAMP(cp.timecreated)::date >= %(fecha_desde)s::date)
   AND (%(fecha_hasta)s IS NULL OR TO_TIMESTAMP(cp.timecreated)::date <= %(fecha_hasta)s::date)
   AND (%(hora_grupo)s IS NULL OR TO_CHAR(TO_TIMESTAMP(cp.startdate), 'HH24') = LPAD(SPLIT_PART(%(hora_grupo)s::text, ':', 1), 2, '0'))
-  AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(cp.startdate)::date = %(fecha_inicio)s::date)
-  AND (%(fecha_fin)s IS NULL OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date = %(fecha_fin)s::date))
+  AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(cp.startdate)::date >= %(fecha_inicio)s::date)
+  AND (%(fecha_fin)s IS NULL OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date <= %(fecha_fin)s::date))
 ORDER BY cp.timecreated DESC, cp.fullname

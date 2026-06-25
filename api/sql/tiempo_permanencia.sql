@@ -116,8 +116,8 @@ eventos AS (
     JOIN base_usuarios bu ON bu.userid = l.userid AND bu.courseid = l.courseid
     WHERE l.userid > 0
       AND l.courseid IS NOT NULL
-      AND (%(fecha_desde)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date >= %(fecha_desde)s::date)
-      AND (%(fecha_hasta)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date <= %(fecha_hasta)s::date)
+      AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date)::bigint)
+      AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM (%(fecha_hasta)s::date + 1))::bigint)
 ),
 tiempos AS (
     SELECT

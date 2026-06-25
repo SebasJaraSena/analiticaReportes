@@ -8,17 +8,19 @@ WITH creadores AS (
     WHERE l.eventname = E'\\core\\event\\user_created'
       AND l.objectid IS NOT NULL
     ORDER BY l.objectid, l.timecreated ASC
+),
+roles_usuario_curso AS (
+    SELECT
+        ra.userid,
+        STRING_AGG(DISTINCT COALESCE(NULLIF(r.name,''), r.shortname), ', ') AS rol_usuario
+    FROM public.mdl_role_assignments ra
+    JOIN public.mdl_role r ON r.id = ra.roleid
+    JOIN public.mdl_context ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50
+    GROUP BY ra.userid
 )
 SELECT
     'ZAJUNA'                                                                AS "Ambiente",
-    COALESCE(
-        (SELECT STRING_AGG(DISTINCT COALESCE(NULLIF(r2.name,''), r2.shortname), ', ')
-         FROM mdl_role_assignments ra2
-         JOIN mdl_role r2 ON r2.id = ra2.roleid
-         JOIN mdl_context ctx2 ON ctx2.id = ra2.contextid
-         WHERE ra2.userid = u.id AND ctx2.contextlevel = 50),
-        'Sin rol'
-    )                                                                       AS "Rol de usuario",
+    COALESCE(ruc.rol_usuario, 'Sin rol')                                    AS "Rol de usuario",
     CASE
         WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti)$'
         THEN UPPER(SUBSTRING(LOWER(u.username) FROM '(cc|dni|ce|ppt|ti)$'))
@@ -47,11 +49,12 @@ SELECT
     COALESCE(c.usuario_creador, 'No disponible')                            AS "Usuario Creador"
 FROM mdl_user u
 LEFT JOIN creadores c ON c.userid_creado = u.id
+LEFT JOIN roles_usuario_curso ruc ON ruc.userid = u.id
 WHERE u.id > 2
   AND (%(mes)s IS NULL OR EXTRACT(MONTH FROM TO_TIMESTAMP(u.timecreated))::int = %(mes)s::int)
   AND (%(anio)s IS NULL OR EXTRACT(YEAR FROM TO_TIMESTAMP(u.timecreated))::int = %(anio)s::int)
   AND (%(origen_datos)s IS NULL OR
        CASE WHEN u.auth = 'manual' THEN 'Manual' ELSE 'Integración / Externo' END = %(origen_datos)s)
-  AND (%(fecha_desde)s IS NULL OR TO_TIMESTAMP(u.timecreated)::date >= %(fecha_desde)s::date)
-  AND (%(fecha_hasta)s IS NULL OR TO_TIMESTAMP(u.timecreated)::date <= %(fecha_hasta)s::date)
+  AND (%(fecha_desde)s IS NULL OR u.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date)::bigint)
+  AND (%(fecha_hasta)s IS NULL OR u.timecreated < EXTRACT(EPOCH FROM (%(fecha_hasta)s::date + 1))::bigint)
 ORDER BY u.lastname, u.firstname
