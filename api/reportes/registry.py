@@ -51,6 +51,52 @@ class ReporteDefinicion:
         ]
 
 
+# ── Shared filter option lists (reused across multiple reports) ───────────────
+
+OPC_TODAS: list[dict] = [{"value": "", "label": "Todas"}]
+
+OPC_ESTADO_GRUPO: list[dict] = [
+    {"value": "",             "label": "Todas"},
+    {"value": "En ejecución", "label": "En ejecución"},
+    {"value": "Finalizado",   "label": "Finalizado"},
+    {"value": "No iniciado",  "label": "No iniciado"},
+    {"value": "Oculto",       "label": "Oculto"},
+]
+
+OPC_NIVELES: list[dict] = [
+    {"value": "",                   "label": "Todas"},
+    {"value": "Formación titulada", "label": "Formación titulada"},
+    {"value": "No definido",        "label": "No definido"},
+]
+
+OPC_MODALIDADES: list[dict] = [
+    {"value": "",                    "label": "Todas"},
+    {"value": "Titulada virtual",    "label": "Titulada virtual"},
+    {"value": "Titulada presencial", "label": "Titulada presencial"},
+    {"value": "Titulada a distancia","label": "Titulada a distancia"},
+]
+
+OPC_ROLES: list[dict] = [
+    {"value": "",               "label": "Todas"},
+    {"value": "student",        "label": "Aprendiz"},
+    {"value": "teacher",        "label": "Instructor"},
+    {"value": "editingteacher", "label": "Instructor editor"},
+]
+
+OPC_ORIGEN_DATOS: list[dict] = [
+    {"value": "",             "label": "Todas"},
+    {"value": "Integración",  "label": "Integración"},
+    {"value": "Manual",       "label": "Manual"},
+]
+
+OPC_ESTADO_USUARIO: list[dict] = [
+    {"value": "",           "label": "Todas"},
+    {"value": "Activo",     "label": "Activo"},
+    {"value": "Suspendido", "label": "Suspendido"},
+    {"value": "Eliminado",  "label": "Eliminado"},
+]
+
+
 # ── Report definitions ───────────────────────────────────────────────────────
 
 REPORTES: dict[str, ReporteDefinicion] = {}

@@ -17,8 +17,8 @@ WHERE l.userid > 0
   AND l.action = 'viewed'
   AND l.courseid IS NOT NULL
   AND c.id <> 1
-  AND (%(fecha_desde)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date >= %(fecha_desde)s::date)
-  AND (%(fecha_hasta)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date <= %(fecha_hasta)s::date)
+  AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date)::bigint)
+  AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM (%(fecha_hasta)s::date + 1))::bigint)
   AND (%(origen_datos)s IS NULL OR
        CASE WHEN (c.shortname ~ '^P_[0-9]+_' OR c.shortname ~ '^[0-9]+P_[0-9]+_')
             THEN 'Integración' ELSE 'Manual' END = %(origen_datos)s)

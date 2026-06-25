@@ -173,14 +173,8 @@ ingresos_ava AS (
                 AND l.action = 'viewed'
             )
           )
-      AND (
-            %(fecha_desde)s IS NULL
-            OR (TO_TIMESTAMP(l.timecreated) AT TIME ZONE 'America/Bogota')::date >= %(fecha_desde)s::date
-          )
-      AND (
-            %(fecha_hasta)s IS NULL
-            OR (TO_TIMESTAMP(l.timecreated) AT TIME ZONE 'America/Bogota')::date <= %(fecha_hasta)s::date
-          )
+      AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date AT TIME ZONE 'America/Bogota')::bigint)
+      AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM ((%(fecha_hasta)s::date + 1) AT TIME ZONE 'America/Bogota'))::bigint)
     GROUP BY
         l.userid,
         l.courseid
@@ -375,14 +369,8 @@ wikis AS (
             l.eventname ILIKE '%%page_updated%%'
             OR l.action IN ('created', 'updated')
           )
-      AND (
-            %(fecha_desde)s IS NULL
-            OR (TO_TIMESTAMP(l.timecreated) AT TIME ZONE 'America/Bogota')::date >= %(fecha_desde)s::date
-          )
-      AND (
-            %(fecha_hasta)s IS NULL
-            OR (TO_TIMESTAMP(l.timecreated) AT TIME ZONE 'America/Bogota')::date <= %(fecha_hasta)s::date
-          )
+      AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date AT TIME ZONE 'America/Bogota')::bigint)
+      AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM ((%(fecha_hasta)s::date + 1) AT TIME ZONE 'America/Bogota'))::bigint)
     GROUP BY
         l.userid,
         l.courseid
@@ -401,14 +389,8 @@ scorm AS (
             l.action IN ('viewed', 'launched', 'submitted', 'completed', 'updated')
             OR l.eventname ILIKE '%%scorm%%'
           )
-      AND (
-            %(fecha_desde)s IS NULL
-            OR (TO_TIMESTAMP(l.timecreated) AT TIME ZONE 'America/Bogota')::date >= %(fecha_desde)s::date
-          )
-      AND (
-            %(fecha_hasta)s IS NULL
-            OR (TO_TIMESTAMP(l.timecreated) AT TIME ZONE 'America/Bogota')::date <= %(fecha_hasta)s::date
-          )
+      AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date AT TIME ZONE 'America/Bogota')::bigint)
+      AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM ((%(fecha_hasta)s::date + 1) AT TIME ZONE 'America/Bogota'))::bigint)
     GROUP BY
         l.userid,
         l.courseid
@@ -715,14 +697,14 @@ WHERE (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bm.programa_formacion, '')
 
   AND (
         %(fecha_inicio)s IS NULL
-        OR TO_TIMESTAMP(bm.startdate)::date = %(fecha_inicio)s::date
+        OR TO_TIMESTAMP(bm.startdate)::date >= %(fecha_inicio)s::date
       )
 
   AND (
         %(fecha_fin)s IS NULL
         OR (
             bm.enddate > 0
-            AND TO_TIMESTAMP(bm.enddate)::date = %(fecha_fin)s::date
+            AND TO_TIMESTAMP(bm.enddate)::date <= %(fecha_fin)s::date
         )
       )
 

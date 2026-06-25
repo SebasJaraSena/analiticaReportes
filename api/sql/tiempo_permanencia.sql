@@ -100,8 +100,8 @@ base_usuarios AS (
       AND (%(origen_datos)s IS NULL OR
            CASE WHEN (cp.shortname ~ '^P_[0-9]+_' OR cp.shortname ~ '^[0-9]+P_[0-9]+_')
                 THEN 'Integración' ELSE 'Manual' END = %(origen_datos)s)
-      AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(cp.startdate)::date = %(fecha_inicio)s::date)
-      AND (%(fecha_fin)s IS NULL OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date = %(fecha_fin)s::date))
+      AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(cp.startdate)::date >= %(fecha_inicio)s::date)
+      AND (%(fecha_fin)s IS NULL OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date <= %(fecha_fin)s::date))
 ),
 eventos AS (
     SELECT
@@ -116,8 +116,8 @@ eventos AS (
     JOIN base_usuarios bu ON bu.userid = l.userid AND bu.courseid = l.courseid
     WHERE l.userid > 0
       AND l.courseid IS NOT NULL
-      AND (%(fecha_desde)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date >= %(fecha_desde)s::date)
-      AND (%(fecha_hasta)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date <= %(fecha_hasta)s::date)
+      AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date)::bigint)
+      AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM (%(fecha_hasta)s::date + 1))::bigint)
 ),
 tiempos AS (
     SELECT
@@ -249,6 +249,6 @@ WHERE pt.seg_total > 0
   AND (%(origen_datos)s IS NULL OR
        CASE WHEN (bu.shortname ~ '^P_[0-9]+_' OR bu.shortname ~ '^[0-9]+P_[0-9]+_')
             THEN 'Integración' ELSE 'Manual' END = %(origen_datos)s)
-  AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(bu.startdate)::date = %(fecha_inicio)s::date)
-  AND (%(fecha_fin)s IS NULL OR (bu.enddate > 0 AND TO_TIMESTAMP(bu.enddate)::date = %(fecha_fin)s::date))
+  AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(bu.startdate)::date >= %(fecha_inicio)s::date)
+  AND (%(fecha_fin)s IS NULL OR (bu.enddate > 0 AND TO_TIMESTAMP(bu.enddate)::date <= %(fecha_fin)s::date))
 ORDER BY bu.codigo_ficha, bu.nombres_apellidos

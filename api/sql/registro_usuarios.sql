@@ -132,7 +132,7 @@ WHERE u.deleted = 0
             WHEN cp.letra_modalidad IN ('P','PI') THEN 'Titulada presencial'
             ELSE 'No definido' END ILIKE '%%' || %(modalidad)s || '%%')
   AND (%(fecha_inicio)s IS NULL
-       OR TO_TIMESTAMP(cp.startdate)::date = %(fecha_inicio)s::date)
+       OR TO_TIMESTAMP(cp.startdate)::date >= %(fecha_inicio)s::date)
   AND (%(fecha_fin)s IS NULL
-       OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date = %(fecha_fin)s::date))
+       OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date <= %(fecha_fin)s::date))
 ORDER BY cp.fullname, "Rol de usuario", "Nombres y apellidos"

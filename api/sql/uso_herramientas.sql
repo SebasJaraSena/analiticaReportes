@@ -42,8 +42,8 @@ actividad AS (
            ON l.courseid = cp.courseid
           AND l.contextinstanceid = cm.id
           AND l.contextlevel = 70
-          AND (%(fecha_desde)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date >= %(fecha_desde)s::date)
-          AND (%(fecha_hasta)s IS NULL OR TO_TIMESTAMP(l.timecreated)::date <= %(fecha_hasta)s::date)
+          AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date)::bigint)
+          AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM (%(fecha_hasta)s::date + 1))::bigint)
           AND (%(hora_consulta)s IS NULL OR TO_CHAR(TO_TIMESTAMP(l.timecreated), 'HH24') = LPAD(SPLIT_PART(%(hora_consulta)s::text, ':', 1), 2, '0'))
     WHERE cm.deletioninprogress = 0
 )
@@ -123,8 +123,8 @@ WHERE (%(codigo_ficha)s     IS NULL OR cp.idnumber ILIKE %(codigo_ficha)s)
        CASE WHEN (cp.shortname ~ '^P_[0-9]+_' OR cp.shortname ~ '^[0-9]+P_[0-9]+_')
             THEN 'Integración' ELSE 'Manual' END = %(origen_datos)s)
   AND (%(hora_grupo)s IS NULL OR TO_CHAR(TO_TIMESTAMP(cp.startdate), 'HH24') = LPAD(SPLIT_PART(%(hora_grupo)s::text, ':', 1), 2, '0'))
-  AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(cp.startdate)::date = %(fecha_inicio)s::date)
-  AND (%(fecha_fin)s IS NULL OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date = %(fecha_fin)s::date))
+  AND (%(fecha_inicio)s IS NULL OR TO_TIMESTAMP(cp.startdate)::date >= %(fecha_inicio)s::date)
+  AND (%(fecha_fin)s IS NULL OR (cp.enddate > 0 AND TO_TIMESTAMP(cp.enddate)::date <= %(fecha_fin)s::date))
 GROUP BY
     cp.courseid, cp.idnumber, cp.fullname, cp.letra_modalidad,
     reg.nombre, cen.nombre, cp.codigo_regional, cp.codigo_centro,

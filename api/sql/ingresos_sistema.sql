@@ -9,6 +9,8 @@ WITH ingresos AS (
     WHERE l.eventname = E'\\core\\event\\user_loggedin'
       AND l.userid > 0
       AND u.deleted = 0
+      AND (%(fecha_desde)s IS NULL OR l.timecreated >= EXTRACT(EPOCH FROM %(fecha_desde)s::date AT TIME ZONE 'America/Bogota')::bigint)
+      AND (%(fecha_hasta)s IS NULL OR l.timecreated < EXTRACT(EPOCH FROM ((%(fecha_hasta)s::date + 1) AT TIME ZONE 'America/Bogota'))::bigint)
 ),
 roles_usuario AS (
     SELECT
