@@ -229,7 +229,7 @@ WHERE
                WHEN cp.letra_modalidad IN ('V', 'A', 'P', 'PI')
                THEN 'Formación titulada'
                ELSE 'No definido'
-           END ILIKE '%%' || %(nivel)s || '%%'
+           END = ANY(%(nivel)s::text[])
       )
 
   AND (
@@ -239,7 +239,7 @@ WHERE
                WHEN cp.letra_modalidad = 'A' THEN 'Titulada a distancia'
                WHEN cp.letra_modalidad IN ('P', 'PI') THEN 'Titulada presencial'
                ELSE 'No definido'
-           END ILIKE '%%' || %(modalidad)s || '%%'
+           END = ANY(%(modalidad)s::text[])
       )
 
   AND (
@@ -268,7 +268,7 @@ WHERE
             JOIN public.mdl_role r
                 ON r.id = ra.roleid
             WHERE ctx.instanceid = cp.courseid
-              AND r.shortname = %(rol_usuario)s
+              AND r.shortname = ANY(%(rol_usuario)s::text[])
         )
       )
 

@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import SmallInteger
 
 
 class Base(DeclarativeBase):
@@ -58,6 +59,29 @@ class Solicitud(Base):
         }
 
 
+class ReporteProgramado(Base):
+    __tablename__ = "reportes_programados"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    usuario_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    nombre: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reporte_codigo: Mapped[str] = mapped_column(String(100), nullable=False)
+    reporte_nombre: Mapped[str] = mapped_column(String(255), nullable=False)
+    filtros: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    formato: Mapped[str] = mapped_column(String(20), nullable=False, default="xlsx")
+    frecuencia: Mapped[str] = mapped_column(String(20), nullable=False)  # diario/semanal/mensual
+    dia_semana: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)  # 0=lunes…6=domingo
+    dia_mes: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)  # 1–31
+    hora: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=8)
+    minuto: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    ultima_ejecucion: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    proxima_ejecucion: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, default=datetime.now
+    )
+
+
 class ReporteUser(Base):
     __tablename__ = "reportes_users"
 
@@ -68,5 +92,5 @@ class ReporteUser(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), nullable=False, default=datetime.utcnow
+        DateTime(timezone=False), nullable=False, default=datetime.now
     )

@@ -28,6 +28,7 @@ services:
     env_file: .env
     environment:
       - REPORTES_OUTPUT_DIR=/app/reportes_generados
+      - TZ=America/Bogota
     volumes:
       - reportes_generados:/app/reportes_generados
       - ./api/sql:/app/api/sql:ro
@@ -53,6 +54,7 @@ services:
     env_file: .env
     environment:
       - REPORTES_OUTPUT_DIR=/app/reportes_generados
+      - TZ=America/Bogota
     volumes:
       - reportes_generados:/app/reportes_generados
       - ./api/sql:/app/api/sql:ro

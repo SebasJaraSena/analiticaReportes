@@ -52,13 +52,13 @@ base_usuarios AS (
         cp.shortname,
         u.id AS userid,
         CASE
-            WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti)$'
-            THEN UPPER(SUBSTRING(LOWER(u.username) FROM '(cc|dni|ce|ppt|ti)$'))
+            WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti|te)$'
+            THEN UPPER(SUBSTRING(LOWER(u.username) FROM '(cc|dni|ce|ppt|ti|te)$'))
             ELSE 'No definido'
         END AS tipo_documento,
         CASE
-            WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti)$'
-            THEN REGEXP_REPLACE(u.username, '(cc|dni|ce|ppt|ti)$', '', 'i')
+            WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti|te)$'
+            THEN REGEXP_REPLACE(u.username, '(cc|dni|ce|ppt|ti|te)$', '', 'i')
             ELSE u.username
         END AS documento,
         CONCAT(u.firstname, ' ', u.lastname) AS nombres_apellidos,
@@ -80,12 +80,12 @@ base_usuarios AS (
       AND (%(nombres_apellidos)s IS NULL OR CONCAT(u.firstname,' ',u.lastname) ILIKE '%%' || %(nombres_apellidos)s || '%%')
       AND (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(cp.programa_formacion,''), cp.fullname) ILIKE '%%' || %(nombre_programa)s || '%%')
       AND (%(codigo_programa)s IS NULL OR COALESCE(cp.codigo_programa,'') ILIKE '%%' || %(codigo_programa)s || '%%')
-      AND (%(nivel)s IS NULL OR CASE WHEN cp.letra_modalidad IN ('V','A','P','PI') THEN 'Formación titulada' ELSE 'No definido' END ILIKE '%%' || %(nivel)s || '%%')
+      AND (%(nivel)s IS NULL OR CASE WHEN cp.letra_modalidad IN ('V','A','P','PI') THEN 'Formación titulada' ELSE 'No definido' END = ANY(%(nivel)s::text[]))
       AND (%(modalidad)s IS NULL OR
            CASE WHEN cp.letra_modalidad = 'V' THEN 'Titulada virtual'
                 WHEN cp.letra_modalidad = 'A' THEN 'Titulada a distancia'
                 WHEN cp.letra_modalidad IN ('P','PI') THEN 'Titulada presencial'
-                ELSE 'No definido' END ILIKE '%%' || %(modalidad)s || '%%')
+                ELSE 'No definido' END = ANY(%(modalidad)s::text[]))
       AND (%(estado_grupo)s IS NULL OR
            CASE WHEN cp.visible = 0 THEN 'Oculto'
                 WHEN cp.startdate > EXTRACT(EPOCH FROM NOW()) THEN 'No iniciado'
@@ -230,12 +230,12 @@ LEFT JOIN midb.centros cen ON cen.sed_id = NULLIF(bu.codigo_centro, '')::bigint
 WHERE pt.seg_total > 0
   AND (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bu.programa_formacion,''), bu.nombre_ficha) ILIKE '%%' || %(nombre_programa)s || '%%')
   AND (%(codigo_programa)s IS NULL OR COALESCE(bu.codigo_programa,'') ILIKE '%%' || %(codigo_programa)s || '%%')
-  AND (%(nivel)s IS NULL OR CASE WHEN bu.letra_modalidad IN ('V','A','P','PI') THEN 'Formación titulada' ELSE 'No definido' END ILIKE '%%' || %(nivel)s || '%%')
+  AND (%(nivel)s IS NULL OR CASE WHEN bu.letra_modalidad IN ('V','A','P','PI') THEN 'Formación titulada' ELSE 'No definido' END = ANY(%(nivel)s::text[]))
   AND (%(modalidad)s IS NULL OR
        CASE WHEN bu.letra_modalidad = 'V' THEN 'Titulada virtual'
             WHEN bu.letra_modalidad = 'A' THEN 'Titulada a distancia'
             WHEN bu.letra_modalidad IN ('P','PI') THEN 'Titulada presencial'
-            ELSE 'No definido' END ILIKE '%%' || %(modalidad)s || '%%')
+            ELSE 'No definido' END = ANY(%(modalidad)s::text[]))
   AND (%(regional)s IS NULL OR COALESCE(reg.nombre, 'Regional ' || bu.codigo_regional, '') ILIKE '%%' || %(regional)s || '%%')
   AND (%(centro_formacion)s IS NULL OR COALESCE(cen.nombre, 'Centro ' || bu.codigo_centro, '') ILIKE '%%' || %(centro_formacion)s || '%%')
   AND (%(estado_grupo)s IS NULL OR
@@ -243,7 +243,7 @@ WHERE pt.seg_total > 0
             WHEN bu.startdate > EXTRACT(EPOCH FROM NOW()) THEN 'No iniciado'
             WHEN bu.enddate > 0 AND bu.enddate < EXTRACT(EPOCH FROM NOW()) THEN 'Finalizado'
             ELSE 'En ejecución' END = %(estado_grupo)s)
-  AND (%(rol_usuario)s IS NULL OR bu.rol_shortnames ILIKE '%%' || %(rol_usuario)s || '%%')
+  AND (%(rol_usuario)s IS NULL OR string_to_array(bu.rol_shortnames, ',') && %(rol_usuario)s::text[])
   AND (%(estado_usuario)s IS NULL OR bu.estado_usuario_lms = %(estado_usuario)s)
   AND (%(estado_aprendiz)s IS NULL OR 'No disponible (SOFIA Plus)' = %(estado_aprendiz)s)
   AND (%(origen_datos)s IS NULL OR

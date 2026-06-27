@@ -102,21 +102,21 @@ base_matriculas AS (
         COALESCE(NULLIF(u.idnumber, ''), u.username) AS identificacion_base,
 
         CASE
-            WHEN LOWER(COALESCE(NULLIF(u.idnumber, ''), u.username)) ~ '(cc|dni|ce|ppt|ti)$'
+            WHEN LOWER(COALESCE(NULLIF(u.idnumber, ''), u.username)) ~ '(cc|dni|ce|ppt|ti|te)$'
             THEN UPPER(
                 SUBSTRING(
                     LOWER(COALESCE(NULLIF(u.idnumber, ''), u.username))
-                    FROM '(cc|dni|ce|ppt|ti)$'
+                    FROM '(cc|dni|ce|ppt|ti|te)$'
                 )
             )
             ELSE 'No definido'
         END AS tipo_documento,
 
         CASE
-            WHEN LOWER(COALESCE(NULLIF(u.idnumber, ''), u.username)) ~ '(cc|dni|ce|ppt|ti)$'
+            WHEN LOWER(COALESCE(NULLIF(u.idnumber, ''), u.username)) ~ '(cc|dni|ce|ppt|ti|te)$'
             THEN REGEXP_REPLACE(
                 COALESCE(NULLIF(u.idnumber, ''), u.username),
-                '(cc|dni|ce|ppt|ti)$',
+                '(cc|dni|ce|ppt|ti|te)$',
                 '',
                 'i'
             )
@@ -603,7 +603,7 @@ WHERE (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bm.programa_formacion, '')
         OR CASE
             WHEN bm.letra_modalidad IN ('V', 'A', 'P', 'PI') THEN 'Formación titulada'
             ELSE 'No definido'
-           END ILIKE '%%' || %(nivel)s || '%%'
+           END = ANY(%(nivel)s::text[])
       )
 
   AND (
@@ -613,7 +613,7 @@ WHERE (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bm.programa_formacion, '')
             WHEN bm.letra_modalidad = 'A' THEN 'Titulada a distancia'
             WHEN bm.letra_modalidad IN ('P', 'PI') THEN 'Titulada presencial'
             ELSE 'No definido'
-           END ILIKE '%%' || %(modalidad)s || '%%'
+           END = ANY(%(modalidad)s::text[])
       )
 
   AND (
@@ -638,8 +638,8 @@ WHERE (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bm.programa_formacion, '')
 
   AND (
         %(rol_usuario)s IS NULL
-        OR bm.rol_shortnames ILIKE '%%' || %(rol_usuario)s || '%%'
-        OR bm.rol_usuario ILIKE '%%' || %(rol_usuario)s || '%%'
+        OR string_to_array(bm.rol_shortnames, ',') && %(rol_usuario)s::text[]
+        OR string_to_array(bm.rol_usuario, ',') && %(rol_usuario)s::text[]
       )
 
   AND (

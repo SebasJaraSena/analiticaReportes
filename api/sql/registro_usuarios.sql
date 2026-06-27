@@ -192,14 +192,14 @@ SELECT
     ) AS "Rol de usuario",
 
     CASE
-        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt)$'
-        THEN UPPER(SUBSTRING(LOWER(u.username) FROM '(cc|dni|ce|ppt)$'))
+        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti|te)$'
+        THEN UPPER(SUBSTRING(LOWER(u.username) FROM '(cc|dni|ce|ppt|ti|te)$'))
         ELSE 'No definido'
     END AS "Tipo de Documento",
 
     CASE
-        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt)$'
-        THEN REGEXP_REPLACE(u.username, '(cc|dni|ce|ppt)$', '', 'i')
+        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti|te)$'
+        THEN REGEXP_REPLACE(u.username, '(cc|dni|ce|ppt|ti|te)$', '', 'i')
         ELSE u.username
     END AS "Documento",
 
@@ -292,7 +292,7 @@ WHERE u.deleted = 0
 
   AND (
         %(rol_usuario)s IS NULL
-        OR ru.rol_shortnames ILIKE '%%' || %(rol_usuario)s || '%%'
+        OR string_to_array(ru.rol_shortnames, ',') && %(rol_usuario)s::text[]
       )
 
   AND (
@@ -318,7 +318,7 @@ WHERE u.deleted = 0
                WHEN cp.letra_modalidad IN ('V', 'A', 'P', 'PI')
                THEN 'Formación titulada'
                ELSE 'No definido'
-           END ILIKE '%%' || %(nivel)s || '%%'
+           END = ANY(%(nivel)s::text[])
       )
 
   AND (
@@ -328,7 +328,7 @@ WHERE u.deleted = 0
                WHEN cp.letra_modalidad = 'A' THEN 'Titulada a distancia'
                WHEN cp.letra_modalidad IN ('P', 'PI') THEN 'Titulada presencial'
                ELSE 'No definido'
-           END ILIKE '%%' || %(modalidad)s || '%%'
+           END = ANY(%(modalidad)s::text[])
       )
 
 ORDER BY

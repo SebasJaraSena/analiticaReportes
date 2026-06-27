@@ -77,6 +77,28 @@ def init_control_db() -> None:
 
     CREATE INDEX IF NOT EXISTS idx_ru_email    ON reportes_users (email);
     CREATE INDEX IF NOT EXISTS idx_ru_username ON reportes_users (username);
+
+    CREATE TABLE IF NOT EXISTS reportes_programados (
+        id               SERIAL PRIMARY KEY,
+        usuario_email    VARCHAR(255) NOT NULL,
+        nombre           VARCHAR(255),
+        reporte_codigo   VARCHAR(100) NOT NULL,
+        reporte_nombre   VARCHAR(255) NOT NULL,
+        filtros          JSONB,
+        formato          VARCHAR(20)  NOT NULL DEFAULT 'xlsx',
+        frecuencia       VARCHAR(20)  NOT NULL,
+        dia_semana       SMALLINT,
+        dia_mes          SMALLINT,
+        hora             SMALLINT     NOT NULL DEFAULT 8,
+        minuto           SMALLINT     NOT NULL DEFAULT 0,
+        activo           BOOLEAN      NOT NULL DEFAULT TRUE,
+        ultima_ejecucion TIMESTAMP,
+        proxima_ejecucion TIMESTAMP   NOT NULL,
+        created_at       TIMESTAMP    NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rp_usuario_email ON reportes_programados (usuario_email);
+    CREATE INDEX IF NOT EXISTS idx_rp_activo_proxima ON reportes_programados (activo, proxima_ejecucion);
     """
     migrate_ddl = """
     ALTER TABLE reportes_users

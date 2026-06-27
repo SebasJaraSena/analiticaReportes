@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse
 from api.auth import seed_admin_user
 from api.config import settings
 from api.database import init_control_db
-from api.routers import admin, auth, reportes, solicitudes
+from api.routers import auth, programados, reportes, solicitudes
 
 logging.basicConfig(
     level=logging.INFO,
@@ -51,7 +51,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(reportes.router)
 app.include_router(solicitudes.router)
-app.include_router(admin.router)
+app.include_router(programados.router)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -60,12 +60,34 @@ from datetime import datetime
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 
-# ── Frontend SPA ──────────────────────────────────────────────────────────────
+# ── Frontend static assets + SPA ──────────────────────────────────────────────
+
+from fastapi.responses import FileResponse
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+
+_STATIC_TYPES = {
+    ".css": "text/css",
+    ".js":  "application/javascript",
+    ".ico": "image/x-icon",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
+    ".woff":  "font/woff",
+}
+
+
+@app.get("/styles.css", include_in_schema=False)
+def serve_css():
+    return FileResponse(FRONTEND_DIR / "styles.css", media_type="text/css")
+
+
+@app.get("/app.js", include_in_schema=False)
+def serve_js():
+    return FileResponse(FRONTEND_DIR / "app.js", media_type="application/javascript")
 
 
 @app.get("/", response_class=HTMLResponse)

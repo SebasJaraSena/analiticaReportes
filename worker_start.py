@@ -4,6 +4,7 @@ Usage (in Docker): python worker_start.py
 """
 import logging
 import sys
+import threading
 
 from redis import Redis
 from rq import Worker, Queue
@@ -11,6 +12,7 @@ from rq import Worker, Queue
 from api.config import settings
 from api.database import ControlSessionLocal, init_control_db
 from api.jobs import cleanup_old_report_files
+from api.scheduler import scheduler_loop
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +32,10 @@ def main() -> None:
     logger.info("Conectando a Redis: %s", settings.redis_url)
     conn = Redis.from_url(settings.redis_url)
     conn.ping()
+
+    t = threading.Thread(target=scheduler_loop, args=(conn,), daemon=True, name="scheduler")
+    t.start()
+    logger.info("Scheduler thread iniciado.")
 
     queues = [Queue("reportes", connection=conn)]
     worker = Worker(queues, connection=conn)

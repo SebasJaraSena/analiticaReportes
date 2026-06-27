@@ -204,7 +204,7 @@ WHERE b.openingtime > 0
         OR CASE
             WHEN cp.letra_modalidad IN ('V', 'A', 'P', 'PI') THEN 'Formación titulada'
             ELSE 'No definido'
-           END ILIKE '%%' || %(nivel)s || '%%'
+           END = ANY(%(nivel)s::text[])
       )
 
   AND (
@@ -214,7 +214,7 @@ WHERE b.openingtime > 0
             WHEN cp.letra_modalidad = 'A' THEN 'Titulada a distancia'
             WHEN cp.letra_modalidad IN ('P', 'PI') THEN 'Titulada presencial'
             ELSE 'No definido'
-           END ILIKE '%%' || %(modalidad)s || '%%'
+           END = ANY(%(modalidad)s::text[])
       )
 
   AND (
@@ -252,7 +252,7 @@ WHERE b.openingtime > 0
                 ON r.id = ra.roleid
             WHERE blr.bigbluebuttonbnid = b.id
               AND (
-                    r.shortname ILIKE '%%' || %(rol_usuario)s || '%%'
+                    string_to_array(r.shortname, ',') && %(rol_usuario)s::text[]
                  OR COALESCE(NULLIF(r.name, ''), r.shortname) ILIKE '%%' || %(rol_usuario)s || '%%'
               )
         )

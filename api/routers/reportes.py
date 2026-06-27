@@ -210,7 +210,7 @@ def generar_reporte(
         filtros=body.filtros,
         estado="PENDIENTE",
         formato=body.formato,
-        fecha_solicitud=datetime.utcnow(),
+        fecha_solicitud=datetime.now(),
     )
     db.add(solicitud)
     db.commit()

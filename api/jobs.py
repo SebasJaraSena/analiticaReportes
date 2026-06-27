@@ -35,9 +35,12 @@ class ReportCancelled(Exception):
 
 
 def _null_if_empty(value: Any) -> Any:
-    """Convert empty string filter values to None (= no filter)."""
+    """Convert empty string / empty list filter values to None (= no filter)."""
     if isinstance(value, str) and value.strip() == "":
         return None
+    if isinstance(value, list):
+        cleaned = [v for v in value if isinstance(v, str) and v.strip()]
+        return cleaned if cleaned else None
     return value
 
 
@@ -48,7 +51,7 @@ def _build_params(filtros: dict[str, Any], reporte_codigo: str) -> dict[str, Any
 
 
 def _output_path(solicitud_id: int, usuario_email: str, extension: str) -> tuple[Path, str]:
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_email = (usuario_email or "anonimo").replace("@", "_").replace(".", "_")
     filename = f"reporte_{solicitud_id}_{safe_email}_{ts}.{extension}"
     out_dir = Path(settings.output_dir)
@@ -341,10 +344,10 @@ def process_report_job(solicitud_id: int) -> None:
             return
 
         solicitud.estado = "PROCESANDO"
-        solicitud.fecha_inicio = datetime.utcnow()
+        solicitud.fecha_inicio = datetime.now()
         solicitud.filas_procesadas = 0
         solicitud.partes_generadas = 0
-        solicitud.fecha_ultimo_progreso = datetime.utcnow()
+        solicitud.fecha_ultimo_progreso = datetime.now()
         solicitud.mensaje_progreso = "Iniciando generación del reporte."
         db.commit()
         logger.info("[%d] Iniciando reporte '%s'.", solicitud_id, solicitud.reporte_codigo)
@@ -352,7 +355,7 @@ def process_report_job(solicitud_id: int) -> None:
         reporte = get_reporte(solicitud.reporte_codigo)
         sql = reporte.load_sql()
         params = _build_params(solicitud.filtros or {}, solicitud.reporte_codigo)
-        gen_time = datetime.utcnow()
+        gen_time = datetime.now()
         meta_rows = _build_meta_rows(reporte, params, gen_time)
 
         out_dir = Path(settings.output_dir)
@@ -381,7 +384,7 @@ def process_report_job(solicitud_id: int) -> None:
 
             solicitud.filas_procesadas = total_rows
             solicitud.partes_generadas = max(part_count, 1)
-            solicitud.fecha_ultimo_progreso = datetime.utcnow()
+            solicitud.fecha_ultimo_progreso = datetime.now()
             solicitud.mensaje_progreso = (
                 f"{total_rows:,} filas exportadas en {max(part_count, 1)} parte(s)."
             )
@@ -469,7 +472,7 @@ def process_report_job(solicitud_id: int) -> None:
                     {"parte": i + 1, "filas": rc}
                     for i, (_, rc) in enumerate(parts)
                 ],
-                "generado_en": datetime.utcnow().isoformat(),
+                "generado_en": datetime.now().isoformat(),
             }
             _pack_zip(parts, final_path, manifest)
 
@@ -485,14 +488,14 @@ def process_report_job(solicitud_id: int) -> None:
         )
 
         solicitud.estado = "FINALIZADO"
-        solicitud.fecha_fin = datetime.utcnow()
+        solicitud.fecha_fin = datetime.now()
         solicitud.formato = formato
         solicitud.archivo_nombre = filename
         solicitud.archivo_ruta = str(final_path)
         solicitud.archivo_tamano = file_size
         solicitud.filas_procesadas = total_rows
         solicitud.partes_generadas = len(parts)
-        solicitud.fecha_ultimo_progreso = datetime.utcnow()
+        solicitud.fecha_ultimo_progreso = datetime.now()
         solicitud.mensaje_progreso = (
             f"Reporte finalizado: {total_rows:,} filas en {len(parts)} parte(s)."
         )
@@ -511,7 +514,7 @@ def process_report_job(solicitud_id: int) -> None:
             shutil.rmtree(tmp_dir, ignore_errors=True)
         if solicitud is not None:
             try:
-                solicitud.fecha_fin = datetime.utcnow()
+                solicitud.fecha_fin = datetime.now()
                 solicitud.mensaje_error = "Solicitud cancelada por el usuario."
                 solicitud.mensaje_progreso = "Generación cancelada."
                 db.commit()
@@ -527,7 +530,7 @@ def process_report_job(solicitud_id: int) -> None:
                 if solicitud.estado == "CANCELADO":
                     return
                 solicitud.estado = "ERROR"
-                solicitud.fecha_fin = datetime.utcnow()
+                solicitud.fecha_fin = datetime.now()
                 solicitud.mensaje_error = str(exc)[:2000]
                 db.commit()
             except Exception:

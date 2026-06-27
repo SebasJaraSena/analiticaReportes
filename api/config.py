@@ -17,6 +17,23 @@ class Settings(BaseSettings):
     moodle_db_user: str = os.getenv("MOODLE_DB_USER", "")
     moodle_db_password: str = os.getenv("MOODLE_DB_PASSWORD", "")
 
+    # Moodle SSO (Web Services)
+    moodle_url: str = os.getenv("MOODLE_URL", "http://host.docker.internal/zajuna")
+    moodle_ws_service: str = os.getenv("MOODLE_WS_SERVICE", "reportes_zajuna")
+    # Override Host header sent to Moodle (needed when container URL differs from wwwroot)
+    moodle_host_header: str = os.getenv("MOODLE_HOST_HEADER", "")
+    # Public Moodle URL visible to the browser (used for logout redirect)
+    moodle_public_url: str = os.getenv("MOODLE_PUBLIC_URL", "http://localhost/zajuna")
+    # Comma-separated Moodle role shortnames allowed to access this system
+    moodle_allowed_roles: str = os.getenv(
+        "MOODLE_ALLOWED_ROLES",
+        "support,dataanalyst,training,analystarticulator,manager",
+    )
+
+    @property
+    def moodle_allowed_roles_set(self) -> set[str]:
+        return {r.strip() for r in self.moodle_allowed_roles.split(",") if r.strip()}
+
     # Redis
     redis_host: str = os.getenv("REDIS_HOST", "redis")
     redis_port: int = int(os.getenv("REDIS_PORT", "6379"))

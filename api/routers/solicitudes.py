@@ -51,7 +51,7 @@ def list_solicitudes(
     rows = (
         db.query(Solicitud)
         .filter(Solicitud.usuario_email == current_user)
-        .order_by(Solicitud.fecha_solicitud.desc())
+        .order_by(Solicitud.id.desc())
         .limit(limit)
         .all()
     )
@@ -98,7 +98,7 @@ def cancelar_solicitud(
     StartedJobRegistry(queue.name, connection=queue.connection).cleanup()
 
     s.estado = "CANCELADO"
-    s.fecha_fin = datetime.utcnow()
+    s.fecha_fin = datetime.now()
     s.mensaje_error = "Solicitud cancelada por el usuario."
     db.commit()
 

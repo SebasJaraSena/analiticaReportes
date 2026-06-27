@@ -4,173 +4,11 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sistema de Reportes ZAJUNA</title>
-  <style>
-    :root {
-      --primary: #04324d;
-      --accent:  #2ea300;
-      --bg:      #f4f6f8;
-      --card:    #ffffff;
-      --border:  #dde1e7;
-      --text:    #1a1a2e;
-      --muted:   #6b7280;
-      --danger:  #dc2626;
-      --warning: #d97706;
-      --success: #16a34a;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-    /* Nav */
-    nav { background: var(--primary); color: #fff; padding: 0 1.5rem; display: flex; align-items: center; height: 56px; gap: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
-    nav .logo { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
-    nav .logo span { color: var(--accent); }
-    nav a { color: rgba(255,255,255,.8); text-decoration: none; font-size: .9rem; padding: .25rem .6rem; border-radius: 4px; cursor: pointer; }
-    nav a:hover, nav a.active { color: #fff; background: rgba(255,255,255,.12); }
-    nav .spacer { flex: 1; }
-    nav .user-badge { font-size: .8rem; color: rgba(255,255,255,.6); }
-    nav .btn-logout { font-size: .8rem; color: rgba(255,255,255,.7); background: rgba(255,255,255,.1); border: none; padding: .3rem .7rem; border-radius: 4px; cursor: pointer; margin-left: .5rem; }
-    nav .btn-logout:hover { background: rgba(255,255,255,.2); color: #fff; }
-
-    /* Layout */
-    main { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
-    .page { display: none; }
-    .page.active { display: block; }
-
-    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: .3rem; }
-    .subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
-
-    /* Cards */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-    .report-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; cursor: pointer; transition: box-shadow .15s, border-color .15s; }
-    .report-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); border-color: var(--accent); }
-    .report-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; }
-    .report-card p { font-size: .83rem; color: var(--muted); line-height: 1.4; }
-    .report-card .btn-sm { margin-top: 1rem; }
-
-    /* Buttons */
-    .btn { display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1.1rem; border-radius: 6px; border: none; cursor: pointer; font-size: .9rem; font-weight: 500; transition: opacity .15s; }
-    .btn:hover { opacity: .85; }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-secondary { background: var(--primary); color: #fff; }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-sm { padding: .35rem .8rem; font-size: .83rem; }
-    .btn-danger { background: var(--danger); color: #fff; }
-
-    /* Forms */
-    .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-    @media (max-width: 960px) { .form-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
-    .form-group { display: flex; flex-direction: column; gap: .3rem; }
-    .form-group label { font-size: .83rem; font-weight: 500; color: var(--muted); }
-    .form-group input, .form-group select {
-      padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 6px;
-      font-size: .9rem; background: #fff; color: var(--text);
-    }
-    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(46,163,0,.15); }
-    .form-actions { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
-    .format-group { display: flex; align-items: center; gap: .6rem; }
-    .format-label { font-size: .83rem; font-weight: 500; color: var(--muted); white-space: nowrap; }
-    .action-btns { display: flex; gap: .6rem; align-items: center; margin-left: auto; }
-
-    /* Table */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-    th { text-align: left; padding: .6rem 1rem; background: var(--primary); color: #fff; font-weight: 600; white-space: nowrap; }
-    td { padding: .6rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f9fafb; }
-
-    /* Badges */
-    .badge { display: inline-block; padding: .2rem .6rem; border-radius: 12px; font-size: .75rem; font-weight: 600; }
-    .badge-pending  { background: #fef3c7; color: #92400e; }
-    .badge-process  { background: #dbeafe; color: #1e40af; }
-    .badge-done     { background: #dcfce7; color: #166534; }
-    .badge-error    { background: #fee2e2; color: #991b1b; }
-
-    /* Alert */
-    .alert { padding: .85rem 1rem; border-radius: 6px; font-size: .875rem; margin-bottom: 1rem; }
-    .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .alert-error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .alert-info    { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
-
-    /* Misc */
-    .back-btn { margin-bottom: 1rem; }
-    .empty { text-align: center; color: var(--muted); padding: 3rem 1rem; }
-    .spin { display: inline-block; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .hidden { display: none !important; }
-    .format-toggle { display: flex; gap: .5rem; }
-    .format-btn { padding: .35rem .75rem; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: .83rem; background: #fff; }
-    .format-btn.selected { border-color: var(--accent); background: var(--accent); color: #fff; }
-
-    /* Preview table */
-    .preview-section { margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
-    .preview-section h3 { font-size: .95rem; font-weight: 600; margin-bottom: .6rem; color: var(--primary); }
-    .preview-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
-    .preview-wrap table { width: max-content; min-width: 100%; font-size: .78rem; }
-    .preview-wrap th { position: sticky; top: 0; background: var(--primary); color: #fff; padding: .45rem .7rem; font-size: .78rem; white-space: nowrap; }
-    .preview-wrap td { padding: .4rem .7rem; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-    .preview-count { font-size: .8rem; color: var(--muted); margin-bottom: .5rem; }
-    .chart-panel { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #fff; }
-    .chart-panel h4 { font-size: .95rem; color: var(--primary); margin-bottom: .25rem; }
-    .chart-subtitle { font-size: .78rem; color: var(--muted); margin-bottom: .85rem; }
-    .bar-chart { display: flex; align-items: end; gap: .5rem; height: 180px; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: .5rem .5rem 0; overflow-x: auto; }
-    .bar-item { min-width: 54px; display: flex; flex-direction: column; align-items: center; justify-content: end; gap: .35rem; height: 100%; }
-    .bar-value { font-size: .7rem; color: var(--muted); white-space: nowrap; }
-    .bar { width: 32px; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--accent); }
-    .bar-label { font-size: .68rem; color: var(--muted); white-space: nowrap; }
-
-    /* Login screen */
-    #login-screen {
-      display: none;
-      min-height: 100vh;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg);
-    }
-    #login-screen.active { display: flex; }
-    .login-box {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2.5rem 2rem;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 4px 24px rgba(0,0,0,.1);
-    }
-    .login-box .login-logo {
-      text-align: center;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 1.75rem;
-    }
-    .login-box .login-logo span { color: var(--accent); }
-    .login-box .login-subtitle {
-      text-align: center;
-      font-size: .85rem;
-      color: var(--muted);
-      margin-bottom: 1.5rem;
-    }
-    .login-field { margin-bottom: 1rem; }
-    .login-field label { display: block; font-size: .83rem; font-weight: 500; color: var(--muted); margin-bottom: .3rem; }
-    .login-field input {
-      width: 100%; padding: .6rem .85rem;
-      border: 1px solid var(--border); border-radius: 6px;
-      font-size: .95rem; background: #fff; color: var(--text);
-    }
-    .login-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(46,163,0,.15); }
-    .login-btn { width: 100%; padding: .7rem; background: var(--accent); color: #fff; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: .5rem; }
-    .login-btn:hover { opacity: .88; }
-    .login-btn:disabled { opacity: .5; cursor: not-allowed; }
-    #login-error { margin-top: 1rem; padding: .65rem .85rem; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; font-size: .85rem; display: none; }
-  </style>
+  <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
 
-<!-- ── Login Screen ───────────────────────────────────────────────────────── -->
+<!-- ── Login ─────────────────────────────────────────────────────────────── -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">Reportes <span>ZAJUNA</span></div>
@@ -188,785 +26,198 @@
   </div>
 </div>
 
-<!-- ── App (shown after login) ───────────────────────────────────────────── -->
+<!-- ── App shell ──────────────────────────────────────────────────────────── -->
 <div id="app-shell" class="hidden">
 
-<nav>
-  <div class="logo">Reportes <span>ZAJUNA</span></div>
-  <a onclick="showPage('reportes')" id="nav-reportes">Reportes</a>
-  <a onclick="showPage('solicitudes')" id="nav-solicitudes">Mis Solicitudes</a>
-  <a onclick="showPage('admin')" id="nav-admin" class="hidden">Usuarios</a>
-  <div class="spacer"></div>
-  <div class="user-badge" id="user-display"></div>
-  <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
-</nav>
+  <nav>
+    <div class="logo">Reportes <span>ZAJUNA</span></div>
+    <a onclick="showPage('reportes')"    id="nav-reportes">Reportes</a>
+    <a onclick="showPage('solicitudes')" id="nav-solicitudes">Mis Solicitudes</a>
+    <a onclick="showPage('programados')" id="nav-programados">Programados</a>
+    <div class="spacer"></div>
+    <div class="user-badge" id="user-display"></div>
+    <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+  </nav>
 
-<main>
-  <!-- ── Page: Lista de Reportes ─────────────────────────────────────── -->
-  <div class="page active" id="page-reportes">
-    <h1>Sistema de Reportes ZAJUNA</h1>
-    <p class="subtitle">Seleccione un reporte para configurar filtros y generar el archivo.</p>
-    <div class="card-grid" id="reportes-grid">
-      <div class="empty">Cargando reportes…</div>
+  <main>
+
+    <!-- ── Reportes ────────────────────────────────────────────────────── -->
+    <div class="page active" id="page-reportes">
+      <h1>Sistema de Reportes ZAJUNA</h1>
+      <p class="subtitle">Seleccione un reporte para configurar filtros y generar el archivo.</p>
+      <div class="card-grid" id="reportes-grid">
+        <div class="empty">Cargando reportes…</div>
+      </div>
     </div>
-  </div>
 
-  <!-- ── Page: Filtros ──────────────────────────────────────────────── -->
-  <div class="page" id="page-filtros">
-    <button class="btn btn-outline btn-sm back-btn" onclick="showPage('reportes')">← Volver</button>
-    <h1 id="filtros-titulo"></h1>
-    <p class="subtitle" id="filtros-desc"></p>
-
-    <div id="filtros-alert" class="hidden"></div>
-
-    <div class="card">
-      <div class="form-grid" id="filtros-form"></div>
-
-      <div class="form-actions">
-        <div class="format-group">
-          <span class="format-label">Formato</span>
-          <div class="format-toggle">
-            <button class="format-btn selected" id="fmt-xlsx" onclick="selectFormat('xlsx')">📊 Excel (.xlsx)</button>
-            <button class="format-btn" id="fmt-csv" onclick="selectFormat('csv')">📄 CSV</button>
+    <!-- ── Filtros ─────────────────────────────────────────────────────── -->
+    <div class="page" id="page-filtros">
+      <button class="btn btn-outline btn-sm back-btn" onclick="showPage('reportes')">← Volver</button>
+      <h1 id="filtros-titulo"></h1>
+      <p class="subtitle" id="filtros-desc"></p>
+      <div id="filtros-alert" class="hidden"></div>
+      <div class="card">
+        <div class="form-grid" id="filtros-form"></div>
+        <div class="form-actions">
+          <div class="format-group">
+            <span class="format-label">Formato</span>
+            <div class="format-toggle">
+              <button class="format-btn selected" id="fmt-xlsx" onclick="selectFormat('xlsx')"> Excel (.xlsx)</button>
+              <button class="format-btn"          id="fmt-csv"  onclick="selectFormat('csv')"> CSV</button>
+            </div>
+          </div>
+          <div class="action-btns">
+            <button class="btn btn-outline" id="btn-preview" onclick="previewReporte()"> Vista previa</button>
+            <button class="btn btn-primary" id="btn-generar" onclick="generarReporte()"> Generar Reporte</button>
           </div>
         </div>
-        <div class="action-btns">
-          <button class="btn btn-outline" id="btn-preview" onclick="previewReporte()">🔍 Vista previa</button>
-          <button class="btn btn-primary" id="btn-generar" onclick="generarReporte()">⚡ Generar Reporte</button>
+        <div class="preview-section hidden" id="preview-section">
+          <h3 id="preview-title">Vista previa</h3>
+          <div id="preview-chart" class="hidden"></div>
+          <div class="preview-count" id="preview-count"></div>
+          <div class="preview-wrap" id="preview-table-wrap"></div>
         </div>
       </div>
+    </div>
 
-      <!-- Preview section -->
-      <div class="preview-section hidden" id="preview-section">
-        <h3 id="preview-title">Vista previa</h3>
-        <div id="preview-chart" class="hidden"></div>
-        <div class="preview-count" id="preview-count"></div>
-        <div class="preview-wrap" id="preview-table-wrap"></div>
+    <!-- ── Mis Solicitudes ─────────────────────────────────────────────── -->
+    <div class="page" id="page-solicitudes">
+      <div class="page-header">
+        <div>
+          <h1>Mis Solicitudes</h1>
+          <p class="subtitle" style="margin-bottom:0;">Últimas 100 solicitudes</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadSolicitudes()">↻ Actualizar</button>
+      </div>
+      <div id="solicitudes-alert" class="hidden"></div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Reporte</th><th>Formato</th><th>Estado</th>
+              <th>Progreso</th><th>Solicitado</th><th>Finalizado</th><th>Tamaño</th><th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="solicitudes-tbody">
+            <tr><td colspan="9" class="empty">Cargando…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
 
-  <!-- ── Page: Mis Solicitudes ─────────────────────────────────────── -->
-  <div class="page" id="page-solicitudes">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
-      <div>
-        <h1>Mis Solicitudes</h1>
-        <p class="subtitle" style="margin-bottom:0;">Últimas 100 solicitudes</p>
+    <!-- ── Reportes Programados ────────────────────────────────────────── -->
+    <div class="page" id="page-programados">
+      <div class="page-header">
+        <div>
+          <h1>Reportes Programados</h1>
+          <p class="subtitle" style="margin-bottom:0;">Generación automática en horario definido</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-outline btn-sm" onclick="loadProgramados()">↻ Actualizar</button>
+          <button class="btn btn-primary btn-sm" onclick="showProgModal()">+ Nueva programación</button>
+        </div>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="loadSolicitudes()">↻ Actualizar</button>
-    </div>
-
-    <div id="solicitudes-alert" class="hidden"></div>
-
-    <div class="card table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Reporte</th>
-            <th>Formato</th>
-            <th>Estado</th>
-            <th>Progreso</th>
-            <th>Solicitado</th>
-            <th>Finalizado</th>
-            <th>Tamaño</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody id="solicitudes-tbody">
-          <tr><td colspan="9" class="empty">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── Page: Admin Usuarios ────────────────────────────────────────────── -->
-  <div class="page" id="page-admin">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
-      <div>
-        <h1>Gestión de Usuarios</h1>
-        <p class="subtitle" style="margin-bottom:0;">Crear, editar y desactivar cuentas</p>
+      <div id="prog-alert" class="hidden"></div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Nombre</th><th>Reporte</th><th>Frecuencia</th><th>Hora</th>
+              <th>Formato</th><th>Próxima ejecución</th><th>Última ejecución</th><th>Estado</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="prog-tbody">
+            <tr><td colspan="10" class="empty">Cargando…</td></tr>
+          </tbody>
+        </table>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="showUserModal()">+ Nuevo usuario</button>
     </div>
 
-    <div id="admin-alert" class="hidden"></div>
+  </main>
 
-    <div class="card table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Email</th>
-            <th>Usuario</th>
-            <th>Admin</th>
-            <th>Estado</th>
-            <th>Creado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="users-tbody">
-          <tr><td colspan="7" class="empty">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</main>
+</div><!-- #app-shell -->
 
-<!-- ── Modal: Create/Edit User ─────────────────────────────────────────── -->
-<div id="user-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;">
-  <div style="background:#fff;border-radius:10px;padding:2rem;width:100%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2);">
-    <h2 style="font-size:1.1rem;margin-bottom:1.25rem;" id="modal-title">Nuevo usuario</h2>
-    <div id="modal-alert" class="hidden"></div>
-    <div class="form-group" style="margin-bottom:.85rem;" id="modal-email-group">
-      <label>Correo electrónico *</label>
-      <input type="email" id="modal-email" placeholder="usuario@ejemplo.com"/>
-    </div>
-    <div class="form-group" style="margin-bottom:.85rem;" id="modal-username-group">
-      <label>Nombre de usuario *</label>
-      <input type="text" id="modal-username" placeholder="usuario123"/>
-    </div>
+<!-- ── Modal: Nueva programación ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="prog-modal">
+  <div class="modal-box">
+    <h2 class="modal-title">Nueva programación de reporte</h2>
+    <div id="prog-modal-alert" class="hidden"></div>
+
     <div class="form-group" style="margin-bottom:.85rem;">
-      <label id="modal-pass-label">Contraseña *</label>
-      <input type="password" id="modal-password" placeholder="mínimo 6 caracteres"/>
+      <label>Nombre de la programación <span class="text-muted text-sm">(opcional)</span></label>
+      <input type="text" id="pm-nombre" placeholder="Ej: Reporte semanal de matrículas"/>
     </div>
-    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;">
-      <input type="checkbox" id="modal-is-admin" style="width:16px;height:16px;"/>
-      <label for="modal-is-admin" style="font-size:.9rem;color:var(--text);">Administrador</label>
+
+    <div class="form-group" style="margin-bottom:.85rem;">
+      <label>Reporte *</label>
+      <select id="pm-reporte" onchange="loadProgFiltros()">
+        <option value="">— Seleccionar reporte —</option>
+      </select>
     </div>
-    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
-      <button class="btn btn-outline" onclick="closeUserModal()">Cancelar</button>
-      <button class="btn btn-primary" id="modal-save-btn" onclick="saveUser()">Guardar</button>
+
+    <div id="pm-filtros-wrap" class="hidden">
+      <div class="modal-section-label">Filtros del reporte</div>
+      <div class="form-grid" id="pm-filtros-form" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem;"></div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:.85rem;">
+      <label>Frecuencia *</label>
+      <div class="frec-options">
+        <label class="radio-label"><input type="radio" name="pm-frec" value="diario"  onchange="updateFrecFields()"> Diario</label>
+        <label class="radio-label"><input type="radio" name="pm-frec" value="semanal" onchange="updateFrecFields()"> Semanal</label>
+        <label class="radio-label"><input type="radio" name="pm-frec" value="mensual" onchange="updateFrecFields()"> Mensual</label>
+      </div>
+    </div>
+
+    <div class="form-group" id="pm-dia-semana-wrap" style="margin-bottom:.85rem;display:none;">
+      <label>Día de la semana *</label>
+      <select id="pm-dia-semana">
+        <option value="0">Lunes</option>
+        <option value="1">Martes</option>
+        <option value="2">Miércoles</option>
+        <option value="3">Jueves</option>
+        <option value="4">Viernes</option>
+        <option value="5">Sábado</option>
+        <option value="6">Domingo</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="pm-dia-mes-wrap" style="margin-bottom:.85rem;display:none;">
+      <label>Día del mes *</label>
+      <select id="pm-dia-mes"></select>
+    </div>
+
+    <div class="time-row" style="margin-bottom:.85rem;">
+      <div class="form-group">
+        <label>Hora *</label>
+        <select id="pm-hora"></select>
+      </div>
+      <div class="form-group">
+        <label>Minuto</label>
+        <select id="pm-minuto">
+          <option value="0">:00</option>
+          <option value="15">:15</option>
+          <option value="30">:30</option>
+          <option value="45">:45</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:1.25rem;">
+      <label>Formato</label>
+      <div class="frec-options">
+        <label class="radio-label"><input type="radio" name="pm-fmt" value="xlsx" checked> Excel (.xlsx)</label>
+        <label class="radio-label"><input type="radio" name="pm-fmt" value="csv"> CSV</label>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeProgModal()">Cancelar</button>
+      <button class="btn btn-primary" id="pm-save-btn" onclick="saveProgramado()">Guardar programación</button>
     </div>
   </div>
 </div>
 
-</div><!-- #app-shell -->
-
-<script>
-  const API = '/analitica';
-  let currentReporteCodigo = null;
-  let selectedFormat = 'xlsx';
-  let pollingInterval = null;
-
-  // ── Auth helpers ──────────────────────────────────────────────────────────
-  function getToken() { return localStorage.getItem('rz_token'); }
-  function getEmail() { return localStorage.getItem('rz_email') || ''; }
-
-  function setSession(token, email) {
-    localStorage.setItem('rz_token', token);
-    localStorage.setItem('rz_email', email);
-  }
-
-  function clearSession() {
-    localStorage.removeItem('rz_token');
-    localStorage.removeItem('rz_email');
-  }
-
-  async function authFetch(url, opts = {}) {
-    const token = getToken();
-    const headers = Object.assign({}, opts.headers || {});
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-    const res = await fetch(url, Object.assign({}, opts, { headers }));
-    if (res.status === 401) {
-      clearSession();
-      showLoginScreen('Sesión expirada. Inicia sesión nuevamente.');
-      throw new Error('Unauthorized');
-    }
-    return res;
-  }
-
-  // ── Login / logout ────────────────────────────────────────────────────────
-  function showLoginScreen(msg) {
-    document.getElementById('app-shell').classList.add('hidden');
-    document.getElementById('login-screen').classList.add('active');
-    stopPolling();
-    if (msg) {
-      const el = document.getElementById('login-error');
-      el.textContent = msg;
-      el.style.display = 'block';
-    }
-  }
-
-  function showApp(email) {
-    document.getElementById('login-screen').classList.remove('active');
-    document.getElementById('app-shell').classList.remove('hidden');
-    document.getElementById('user-display').textContent = email;
-    loadReportes();
-    document.getElementById('nav-reportes').classList.add('active');
-    checkAdminAndShowNav();
-  }
-
-  async function doLogin() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
-    const errEl = document.getElementById('login-error');
-    const btn = document.getElementById('login-btn');
-    errEl.style.display = 'none';
-
-    if (!username || !password) {
-      errEl.textContent = 'Ingresa usuario y contraseña.';
-      errEl.style.display = 'block';
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Iniciando sesión…';
-
-    try {
-      const res = await fetch(API + '/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        errEl.textContent = data.detail || 'Credenciales incorrectas.';
-        errEl.style.display = 'block';
-        return;
-      }
-
-      const token = data.access_token;
-      const meRes = await fetch(API + '/api/auth/me', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      const me = await meRes.json();
-      if (!meRes.ok) {
-        errEl.textContent = 'No se pudo obtener el perfil de usuario.';
-        errEl.style.display = 'block';
-        return;
-      }
-
-      setSession(token, me.email);
-      showApp(me.email);
-
-      document.getElementById('login-password').value = '';
-      document.getElementById('login-username').value = '';
-    } catch (e) {
-      if (e.message !== 'Unauthorized') {
-        errEl.textContent = 'Error de conexión. Verifica que el servidor esté activo.';
-        errEl.style.display = 'block';
-      }
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Iniciar sesión';
-    }
-  }
-
-  function doLogout() {
-    clearSession();
-    showLoginScreen(null);
-  }
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('login-screen').classList.contains('active')) {
-      doLogin();
-    }
-  });
-
-  // ── Navigation ────────────────────────────────────────────────────────────
-  function showPage(name) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-    const navEl = document.getElementById('nav-' + name);
-    if (navEl) navEl.classList.add('active');
-    stopPolling();
-    if (name === 'solicitudes') loadSolicitudes();
-    if (name === 'admin') loadUsers();
-  }
-
-  // ── Load reports list ─────────────────────────────────────────────────────
-  async function loadReportes() {
-    const grid = document.getElementById('reportes-grid');
-    try {
-      const res = await authFetch(API + '/api/reportes');
-      const data = await res.json();
-      if (!data.length) { grid.innerHTML = '<div class="empty">No hay reportes disponibles.</div>'; return; }
-      grid.innerHTML = data.map(r => `
-        <div class="report-card" onclick="openFiltros('${r.codigo}')">
-          <h3>${r.nombre}</h3>
-          <p>${r.descripcion}</p>
-          <button class="btn btn-primary btn-sm" style="margin-top:.85rem;" onclick="event.stopPropagation();openFiltros('${r.codigo}')">
-            Configurar y generar
-          </button>
-        </div>
-      `).join('');
-    } catch (e) {
-      if (e.message !== 'Unauthorized')
-        grid.innerHTML = '<div class="empty">Error cargando reportes. Verifica la conexión.</div>';
-    }
-  }
-
-  // ── Open filters page ─────────────────────────────────────────────────────
-  async function openFiltros(codigo) {
-    currentReporteCodigo = codigo;
-    showPage('filtros');
-
-    // Limpiar y mostrar skeleton mientras carga — evita que form-actions quede visible arriba
-    const form = document.getElementById('filtros-form');
-    form.innerHTML = '<div style="grid-column:1/-1;padding:.5rem 0;color:var(--muted);font-size:.88rem;">Cargando filtros…</div>';
-    document.getElementById('filtros-titulo').textContent = '';
-    document.getElementById('filtros-desc').textContent = '';
-    document.getElementById('filtros-alert').className = 'hidden';
-    document.getElementById('preview-section').classList.add('hidden');
-    document.getElementById('preview-table-wrap').innerHTML = '';
-    document.getElementById('preview-chart').className = 'hidden';
-    document.getElementById('preview-chart').innerHTML = '';
-
-    try {
-      const res = await authFetch(API + '/api/reportes/' + codigo + '/filtros');
-      const data = await res.json();
-      document.getElementById('filtros-titulo').textContent = data.nombre;
-      document.getElementById('filtros-desc').textContent = data.descripcion;
-
-      form.innerHTML = data.filtros.map(f => {
-        if (f.tipo === 'select') {
-          const opts = (f.opciones || []).map(o => `<option value="${o.value}">${o.label}</option>`).join('');
-          return `<div class="form-group">
-            <label>${f.etiqueta}${f.requerido ? ' *' : ''}</label>
-            <select id="f_${f.nombre}" name="${f.nombre}">${opts}</select>
-          </div>`;
-        }
-        return `<div class="form-group">
-          <label>${f.etiqueta}${f.requerido ? ' *' : ''}</label>
-          <input type="${f.tipo === 'date' ? 'date' : 'text'}" id="f_${f.nombre}"
-                 name="${f.nombre}" placeholder="${f.placeholder || ''}"/>
-        </div>`;
-      }).join('');
-    } catch (e) {
-      if (e.message !== 'Unauthorized')
-        showAlert('filtros-alert', 'error', 'Error cargando filtros del reporte.');
-    }
-  }
-
-  // ── Format toggle ─────────────────────────────────────────────────────────
-  function selectFormat(fmt) {
-    selectedFormat = fmt;
-    document.getElementById('fmt-xlsx').classList.toggle('selected', fmt === 'xlsx');
-    document.getElementById('fmt-csv').classList.toggle('selected', fmt === 'csv');
-  }
-
-  // ── Generate report ───────────────────────────────────────────────────────
-  async function generarReporte() {
-    const filtros = {};
-    document.querySelectorAll('#filtros-form [id^="f_"]').forEach(el => {
-      filtros[el.name] = el.value.trim() || null;
-    });
-
-    const btn = document.getElementById('btn-generar');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spin">⏳</span> Generando…';
-
-    try {
-      const res = await authFetch(API + '/api/reportes/' + currentReporteCodigo + '/generar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filtros, formato: selectedFormat }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Error desconocido');
-
-      showAlert('filtros-alert', 'success',
-        `✅ ${data.message} (Solicitud #${data.solicitud_id})`);
-      startPolling(data.solicitud_id);
-    } catch (e) {
-      if (e.message !== 'Unauthorized')
-        showAlert('filtros-alert', 'error', '❌ Error: ' + e.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '⚡ Generar Reporte';
-    }
-  }
-
-  // ── Poll solicitud status ─────────────────────────────────────────────────
-  function startPolling(solicitudId) {
-    stopPolling();
-    pollingInterval = setInterval(async () => {
-      try {
-        const res = await authFetch(API + '/api/solicitudes/' + solicitudId);
-        const data = await res.json();
-        if (data.estado === 'FINALIZADO') {
-          stopPolling();
-          const msg = `✅ Reporte listo. <a href="#" onclick="doDownload(${solicitudId}, event)" style="color:var(--accent);font-weight:600;">Descargar ahora</a>`;
-          showAlert('filtros-alert', 'success', msg, true);
-        } else if (data.estado === 'ERROR') {
-          stopPolling();
-          showAlert('filtros-alert', 'error', `❌ Error al generar el reporte: ${data.mensaje_error || 'Error desconocido'}`);
-        } else if (data.estado === 'CANCELADO') {
-          stopPolling();
-          showAlert('filtros-alert', 'info', 'Solicitud cancelada.');
-        } else if (data.estado === 'PROCESANDO') {
-          showAlert('filtros-alert', 'info', progressText(data));
-        }
-      } catch (_) {}
-    }, 4000);
-  }
-
-  function stopPolling() {
-    if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
-  }
-
-  function formatNumber(n) {
-    return Number(n || 0).toLocaleString('es-CO');
-  }
-
-  function progressText(s) {
-    const rows = formatNumber(s.filas_procesadas || 0);
-    const parts = s.partes_generadas || 0;
-    const updated = s.fecha_ultimo_progreso
-      ? ` · actualizado ${s.fecha_ultimo_progreso.replace('T', ' ').slice(11, 19)}`
-      : '';
-    return `Procesando: ${rows} filas exportadas · ${parts || 1} parte(s)${updated}`;
-  }
-
-  // ── Load solicitudes ──────────────────────────────────────────────────────
-  async function loadSolicitudes() {
-    const tbody = document.getElementById('solicitudes-tbody');
-    tbody.innerHTML = '<tr><td colspan="9" class="empty"><span class="spin">⏳</span> Cargando…</td></tr>';
-
-    try {
-      const res = await authFetch(API + '/api/solicitudes?limit=100');
-      const data = await res.json();
-
-      if (!data.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty">No hay solicitudes aún.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = data.map(s => {
-        const badgeClass = {
-          PENDIENTE: 'badge-pending', PROCESANDO: 'badge-process',
-          FINALIZADO: 'badge-done', ERROR: 'badge-error', CANCELADO: 'badge-error',
-        }[s.estado] || 'badge-pending';
-
-        const size = s.archivo_tamano
-          ? (s.archivo_tamano > 1048576
-              ? (s.archivo_tamano / 1048576).toFixed(1) + ' MB'
-              : (s.archivo_tamano / 1024).toFixed(0) + ' KB')
-          : '—';
-
-        const fmtDate = dt => dt ? dt.replace('T', ' ').slice(0, 16) : '—';
-        const progress = (s.filas_procesadas || s.partes_generadas || ['PENDIENTE', 'PROCESANDO'].includes(s.estado))
-          ? `<strong>${formatNumber(s.filas_procesadas || 0)}</strong> filas<br><span style="font-size:.75rem;color:var(--muted);">${s.partes_generadas || 1} parte(s)</span>`
-          : '—';
-
-        const actionBtn = s.estado === 'FINALIZADO'
-          ? `<button class="btn btn-primary btn-sm" onclick="doDownload(${s.id}, event)">⬇ Descargar</button>`
-          : s.estado === 'ERROR'
-          ? `<span title="${s.mensaje_error || ''}" style="color:var(--danger);font-size:.8rem;cursor:help;">Ver error ⓘ</span>`
-          : ['PENDIENTE', 'PROCESANDO'].includes(s.estado)
-          ? `<button class="btn btn-danger btn-sm" onclick="cancelSolicitud(${s.id}, event)">Cancelar</button>`
-          : s.estado === 'CANCELADO'
-          ? `<span style="color:var(--muted);font-size:.8rem;">Cancelado</span>`
-          : `<span class="badge ${badgeClass}">${s.estado}</span>`;
-
-        return `<tr>
-          <td>${s.id}</td>
-          <td><strong>${s.reporte_nombre}</strong><br><span style="font-size:.75rem;color:var(--muted)">${s.reporte_codigo}</span></td>
-          <td>${(s.formato || 'xlsx').toUpperCase()}</td>
-          <td><span class="badge ${badgeClass}">${s.estado}</span></td>
-          <td style="white-space:nowrap">${progress}</td>
-          <td style="white-space:nowrap">${fmtDate(s.fecha_solicitud)}</td>
-          <td style="white-space:nowrap">${fmtDate(s.fecha_fin)}</td>
-          <td>${size}</td>
-          <td>${actionBtn}</td>
-        </tr>`;
-      }).join('');
-    } catch (e) {
-      if (e.message !== 'Unauthorized')
-        tbody.innerHTML = '<tr><td colspan="9" class="empty">Error cargando solicitudes.</td></tr>';
-    }
-  }
-
-  async function doDownload(solicitudId, event) {
-    if (event) event.preventDefault();
-    try {
-      const res = await authFetch(API + '/api/solicitudes/' + solicitudId + '/descargar-email');
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.detail || 'Error al descargar.');
-        return;
-      }
-      const blob = await res.blob();
-      const cd = res.headers.get('content-disposition') || '';
-      const nameMatch = cd.match(/filename="?([^"]+)"?/);
-      const filename = nameMatch ? nameMatch[1] : `reporte_${solicitudId}`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      if (e.message !== 'Unauthorized') alert('Error al descargar el archivo.');
-    }
-  }
-
-  async function cancelSolicitud(solicitudId, event) {
-    if (event) event.preventDefault();
-    if (!confirm('¿Cancelar esta solicitud?')) return;
-    try {
-      const res = await authFetch(API + '/api/solicitudes/' + solicitudId + '/cancelar', {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudo cancelar.');
-      showAlert('solicitudes-alert', 'info', 'Solicitud cancelada.');
-      loadSolicitudes();
-    } catch (e) {
-      if (e.message !== 'Unauthorized') alert('Error al cancelar: ' + e.message);
-    }
-  }
-
-  // ── Admin: User management ────────────────────────────────────────────────
-  let editingUserId = null;
-
-  async function checkAdminAndShowNav() {
-    try {
-      const res = await authFetch(API + '/api/admin/users');
-      if (res.ok) document.getElementById('nav-admin').classList.remove('hidden');
-    } catch (_) {}
-  }
-
-  async function loadUsers() {
-    const tbody = document.getElementById('users-tbody');
-    tbody.innerHTML = '<tr><td colspan="7" class="empty"><span class="spin">⏳</span> Cargando…</td></tr>';
-    try {
-      const res = await authFetch(API + '/api/admin/users');
-      if (!res.ok) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin acceso.</td></tr>'; return; }
-      const users = await res.json();
-      if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay usuarios.</td></tr>'; return; }
-      tbody.innerHTML = users.map(u => `
-        <tr>
-          <td>${u.id}</td>
-          <td>${u.email}</td>
-          <td>${u.username}</td>
-          <td>${u.is_admin ? '<span class="badge badge-process">Admin</span>' : '—'}</td>
-          <td>${u.is_active
-            ? '<span class="badge badge-done">Activo</span>'
-            : '<span class="badge badge-error">Inactivo</span>'}</td>
-          <td style="white-space:nowrap;font-size:.8rem">${u.created_at ? u.created_at.slice(0,10) : '—'}</td>
-          <td style="white-space:nowrap">
-            <button class="btn btn-outline btn-sm" onclick="showUserModal(${u.id},'${u.email}','${u.username}',${u.is_admin})">Editar</button>
-            <button class="btn btn-sm" style="background:#f1f5f9;color:var(--muted);border:1px solid var(--border);" onclick="toggleActive(${u.id},${u.is_active})">
-              ${u.is_active ? 'Desactivar' : 'Activar'}
-            </button>
-          </td>
-        </tr>
-      `).join('');
-    } catch (e) {
-      if (e.message !== 'Unauthorized')
-        tbody.innerHTML = '<tr><td colspan="7" class="empty">Error cargando usuarios.</td></tr>';
-    }
-  }
-
-  function showUserModal(userId, email, username, isAdmin) {
-    editingUserId = userId || null;
-    document.getElementById('modal-title').textContent = userId ? 'Editar usuario' : 'Nuevo usuario';
-    document.getElementById('modal-email').value = email || '';
-    document.getElementById('modal-username').value = username || '';
-    document.getElementById('modal-password').value = '';
-    document.getElementById('modal-is-admin').checked = isAdmin || false;
-    document.getElementById('modal-email-group').style.display = userId ? 'none' : '';
-    document.getElementById('modal-username-group').style.display = userId ? 'none' : '';
-    document.getElementById('modal-pass-label').textContent = userId ? 'Nueva contraseña (vacío = no cambiar)' : 'Contraseña *';
-    document.getElementById('modal-alert').className = 'hidden';
-    document.getElementById('user-modal').style.display = 'flex';
-  }
-
-  function closeUserModal() {
-    document.getElementById('user-modal').style.display = 'none';
-    editingUserId = null;
-  }
-
-  async function saveUser() {
-    const btn = document.getElementById('modal-save-btn');
-    const alertEl = document.getElementById('modal-alert');
-    alertEl.className = 'hidden';
-    btn.disabled = true;
-    btn.textContent = 'Guardando…';
-    try {
-      let res;
-      if (editingUserId) {
-        const password = document.getElementById('modal-password').value.trim();
-        const body = { is_admin: document.getElementById('modal-is-admin').checked };
-        if (password) body.password = password;
-        res = await authFetch(API + '/api/admin/users/' + editingUserId, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-        });
-      } else {
-        const email = document.getElementById('modal-email').value.trim();
-        const username = document.getElementById('modal-username').value.trim();
-        const password = document.getElementById('modal-password').value.trim();
-        if (!email || !username || !password) {
-          alertEl.className = 'alert alert-error'; alertEl.textContent = 'Todos los campos son obligatorios.'; return;
-        }
-        if (password.length < 6) {
-          alertEl.className = 'alert alert-error'; alertEl.textContent = 'Contraseña debe tener al menos 6 caracteres.'; return;
-        }
-        res = await authFetch(API + '/api/admin/users', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, username, password, is_admin: document.getElementById('modal-is-admin').checked }),
-        });
-      }
-      if (!res.ok) {
-        const err = await res.json();
-        alertEl.className = 'alert alert-error'; alertEl.textContent = err.detail || 'Error al guardar.';
-        return;
-      }
-      closeUserModal();
-      loadUsers();
-    } catch (e) {
-      if (e.message !== 'Unauthorized') { alertEl.className = 'alert alert-error'; alertEl.textContent = 'Error de conexión.'; }
-    } finally {
-      btn.disabled = false; btn.textContent = 'Guardar';
-    }
-  }
-
-  async function toggleActive(userId, currentlyActive) {
-    try {
-      const res = await authFetch(API + '/api/admin/users/' + userId, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !currentlyActive }),
-      });
-      if (res.ok) loadUsers();
-      else { const e = await res.json(); alert(e.detail || 'Error'); }
-    } catch (e) {
-      if (e.message !== 'Unauthorized') alert('Error de conexión.');
-    }
-  }
-
-  // ── Alert helper ──────────────────────────────────────────────────────────
-  function showAlert(id, type, msg, isHtml = false) {
-    const el = document.getElementById(id);
-    el.className = 'alert alert-' + (type === 'success' ? 'success' : type === 'info' ? 'info' : 'error');
-    if (isHtml) el.innerHTML = msg; else el.textContent = msg;
-    el.classList.remove('hidden');
-  }
-
-  // ── Init ──────────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
-    const token = getToken();
-    const email = getEmail();
-    if (token && email) {
-      fetch(API + '/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(r => {
-          if (r.ok) {
-            showApp(email);
-          } else {
-            clearSession();
-            showLoginScreen(null);
-          }
-        })
-        .catch(() => showLoginScreen(null));
-    } else {
-      showLoginScreen(null);
-    }
-  });
-
-  // ── Preview ───────────────────────────────────────────────────────────────
-  function renderPreviewChart(data) {
-    const chart = document.getElementById('preview-chart');
-    if (currentReporteCodigo !== 'uso_herramientas' || !data || !data.rows || !data.rows.length) {
-      chart.className = 'hidden';
-      chart.innerHTML = '';
-      return;
-    }
-
-    const toolColumns = data.columns.filter(c => c.startsWith('Cantidad de '));
-    const totals = toolColumns.map(col => ({
-      label: col.replace('Cantidad de ', ''),
-      total: data.rows.reduce((sum, row) => sum + (Number(row[col]) || 0), 0),
-    })).filter(item => item.total > 0);
-
-    if (!totals.length) {
-      chart.className = 'hidden';
-      chart.innerHTML = '';
-      return;
-    }
-
-    const maxValue = Math.max(...totals.map(x => x.total), 1);
-    const bars = totals.map(item => {
-      const height = Math.max(2, Math.round((item.total / maxValue) * 130));
-      const label = item.label.length > 13 ? item.label.slice(0, 12) + '…' : item.label;
-      return `<div class="bar-item" title="${item.label}: ${formatNumber(item.total)}">
-        <div class="bar-value">${formatNumber(item.total)}</div>
-        <div class="bar" style="height:${height}px"></div>
-        <div class="bar-label">${label}</div>
-      </div>`;
-    }).join('');
-
-    chart.className = 'chart-panel';
-    chart.innerHTML = `<h4>Resumen visual de herramientas</h4>
-      <div class="chart-subtitle">Totales calculados con las filas mostradas en la vista previa.</div>
-      <div class="bar-chart">${bars}</div>`;
-  }
-
-  async function previewReporte() {
-    const btn = document.getElementById('btn-preview');
-    const section = document.getElementById('preview-section');
-    const wrap = document.getElementById('preview-table-wrap');
-    const countEl = document.getElementById('preview-count');
-    const chart = document.getElementById('preview-chart');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spin">⏳</span> Cargando…';
-    section.classList.remove('hidden');
-    wrap.innerHTML = '<div class="empty"><span class="spin">⏳</span> Consultando…</div>';
-    chart.className = 'hidden';
-    chart.innerHTML = '';
-    countEl.textContent = '';
-
-    const filtros = {};
-    document.querySelectorAll('#filtros-form [id^="f_"]').forEach(el => {
-      filtros[el.name] = el.value.trim() || null;
-    });
-
-    try {
-      const res = await authFetch(API + '/api/reportes/' + currentReporteCodigo + '/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_email: getEmail(), filtros, formato: selectedFormat }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Error desconocido');
-
-      renderPreviewChart(data);
-
-      if (!data.rows.length) {
-        wrap.innerHTML = '<div class="empty" style="padding:1.5rem">Sin resultados con los filtros actuales.</div>';
-        countEl.textContent = '';
-        document.getElementById('preview-title').textContent = 'Vista previa — sin resultados';
-        return;
-      }
-
-      document.getElementById('preview-title').textContent = 'Vista previa';
-      countEl.textContent = data.count === 50
-        ? 'Mostrando las primeras 50 filas. El reporte completo puede tener más.'
-        : `Mostrando ${data.count} fila${data.count !== 1 ? 's' : ''} (resultado total).`;
-
-      const ths = data.columns.map(c => `<th title="${c}">${c}</th>`).join('');
-      const trs = data.rows.map(row =>
-        '<tr>' + data.columns.map(c => {
-          const val = row[c];
-          const display = val === null || val === undefined ? '' : String(val);
-          return `<td title="${display.replace(/"/g, '&quot;')}">${display}</td>`;
-        }).join('') + '</tr>'
-      ).join('');
-
-      wrap.innerHTML = `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
-    } catch (e) {
-      if (e.message !== 'Unauthorized') {
-        wrap.innerHTML = `<div class="empty" style="padding:1.5rem;color:var(--danger)">Error: ${e.message}</div>`;
-      }
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '🔍 Vista previa';
-    }
-  }
-</script>
+<script src="/app.js"></script>
 </body>
 </html>

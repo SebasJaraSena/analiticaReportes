@@ -47,14 +47,14 @@ SELECT
     COALESCE(ru.rol_usuario, 'Sin rol') AS "Rol de usuario",
 
     CASE
-        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti)$'
-        THEN UPPER(SUBSTRING(LOWER(u.username) FROM '(cc|dni|ce|ppt|ti)$'))
+        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti|te)$'
+        THEN UPPER(SUBSTRING(LOWER(u.username) FROM '(cc|dni|ce|ppt|ti|te)$'))
         ELSE 'No definido'
     END AS "Tipo de Identificación",
 
     CASE
-        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti)$'
-        THEN REGEXP_REPLACE(u.username, '(cc|dni|ce|ppt|ti)$', '', 'i')
+        WHEN LOWER(u.username) ~ '(cc|dni|ce|ppt|ti|te)$'
+        THEN REGEXP_REPLACE(u.username, '(cc|dni|ce|ppt|ti|te)$', '', 'i')
         ELSE u.username
     END AS "Identificación",
 
