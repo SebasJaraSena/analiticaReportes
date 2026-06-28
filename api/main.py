@@ -11,7 +11,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-from api.auth import seed_admin_user
 from api.config import settings
 from api.database import init_control_db
 from api.routers import auth, programados, reportes, solicitudes
@@ -26,7 +25,6 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_control_db()
-    seed_admin_user()
     logger.info("Reportes ZAJUNA iniciado. Puerto 8089.")
     yield
 

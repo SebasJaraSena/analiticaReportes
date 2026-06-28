@@ -80,10 +80,7 @@ async function doLogin() {
   btn.textContent = 'Iniciando sesión…';
 
   try {
-    let result = await _attemptLogin('/api/auth/moodle-login', username, password);
-    if (!result.ok && (username === 'admin' || result.status === 503)) {
-      result = await _attemptLogin('/api/auth/login', username, password);
-    }
+    const result = await _attemptLogin('/api/auth/moodle-login', username, password);
     if (!result.ok) {
       errEl.textContent = result.detail || 'Credenciales incorrectas.';
       errEl.style.display = 'block';

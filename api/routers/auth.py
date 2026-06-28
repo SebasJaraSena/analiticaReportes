@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from api.auth import CurrentUser, authenticate_user, create_token, hash_password
+from api.auth import CurrentUser, create_token, hash_password
 from api.database import ControlSessionLocal
 from api.models import ReporteUser
 from api.moodle_auth import check_user_access, get_moodle_token, get_moodle_user_info, get_moodle_user_info_by_token
@@ -24,14 +24,6 @@ def get_db():
 class LoginRequest(BaseModel):
     username: str
     password: str
-
-
-@router.post("/login")
-def login(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
-    user = authenticate_user(db, body.username, body.password)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos.")
-    return {"access_token": create_token(user.email), "token_type": "bearer"}
 
 
 @router.post("/moodle-login")
