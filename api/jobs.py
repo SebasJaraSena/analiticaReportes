@@ -59,8 +59,7 @@ def _coerce_text_array(value: Any) -> Any:
 
 
 _ARRAY_FILTER_PARAMS = frozenset({
-    "rol_usuario", "nivel", "modalidad", "estado_grupo", "origen_datos",
-    "estado_usuario", "estado_aprendiz",
+    "rol_usuario", "nivel", "modalidad",
 })
 
 
@@ -79,6 +78,10 @@ def _build_params(filtros: dict[str, Any], reporte_codigo: str) -> dict[str, Any
     for key in _ARRAY_FILTER_PARAMS:
         if key in params:
             params[key] = _coerce_text_array(params[key])
+    # Params that use = (not ANY): flatten list → first element to avoid text = text[] error
+    for key, val in list(params.items()):
+        if key not in _ARRAY_FILTER_PARAMS and isinstance(val, list):
+            params[key] = val[0] if val else None
     return params
 
 

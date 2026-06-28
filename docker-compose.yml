@@ -3,7 +3,7 @@ services:
     image: postgres:16
     container_name: reportes_db
     restart: unless-stopped
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     volumes:
       - reportes_db:/var/lib/postgresql/data
     healthcheck:
@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
     ports:
       - "8089:8089"
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     environment:
       - REPORTES_OUTPUT_DIR=/app/reportes_generados
       - TZ=America/Bogota
@@ -51,7 +51,7 @@ services:
     container_name: reportes_worker
     restart: unless-stopped
     command: ["python", "worker_start.py"]
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     environment:
       - REPORTES_OUTPUT_DIR=/app/reportes_generados
       - TZ=America/Bogota

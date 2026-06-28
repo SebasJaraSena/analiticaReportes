@@ -33,3 +33,4 @@ reportes_generados/
 "Formatos informes.xlsx"
 *.xlsx
 *.docx
+.env.local
