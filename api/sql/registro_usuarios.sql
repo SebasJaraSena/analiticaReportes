@@ -292,7 +292,8 @@ WHERE u.deleted = 0
 
   AND (
         %(rol_usuario)s IS NULL
-        OR string_to_array(ru.rol_shortnames, ',') && %(rol_usuario)s::text[]
+        OR EXISTS (SELECT 1 FROM unnest(string_to_array(ru.rol_shortnames, ',')) AS _r(role)
+                   WHERE trim(_r.role) = ANY(%(rol_usuario)s::text[]))
       )
 
   AND (

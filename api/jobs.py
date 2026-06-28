@@ -44,10 +44,42 @@ def _null_if_empty(value: Any) -> Any:
     return value
 
 
+def _coerce_text_array(value: Any) -> Any:
+    """Normaliza string o lista a lista para parámetros SQL ::text[].
+    Soporta filtros guardados como string (programados viejos) o lista (UI nueva)."""
+    if value is None:
+        return None
+    if isinstance(value, list):
+        cleaned = [v.strip() for v in value if isinstance(v, str) and v.strip()]
+        return cleaned if cleaned else None
+    if isinstance(value, str):
+        v = value.strip()
+        return [v] if v else None
+    return value
+
+
+_ARRAY_FILTER_PARAMS = frozenset({
+    "rol_usuario", "nivel", "modalidad", "estado_grupo", "origen_datos",
+    "estado_usuario", "estado_aprendiz",
+})
+
+
+def _format_meta_value(val: Any) -> str:
+    if val is None or val == "" or val == []:
+        return "Todos"
+    if isinstance(val, list):
+        return ", ".join(str(v) for v in val)
+    return str(val)
+
+
 def _build_params(filtros: dict[str, Any], reporte_codigo: str) -> dict[str, Any]:
     reporte = get_reporte(reporte_codigo)
     expected = {f.nombre for f in reporte.filtros}
-    return {k: _null_if_empty(filtros.get(k)) for k in expected}
+    params = {k: _null_if_empty(filtros.get(k)) for k in expected}
+    for key in _ARRAY_FILTER_PARAMS:
+        if key in params:
+            params[key] = _coerce_text_array(params[key])
+    return params
 
 
 def _output_path(solicitud_id: int, usuario_email: str, extension: str) -> tuple[Path, str]:
@@ -68,7 +100,7 @@ def _build_meta_rows(reporte: Any, params: dict, gen_time: datetime) -> list[tup
     ]
     for f in reporte.filtros:
         val = params.get(f.nombre)
-        rows.append((f.etiqueta, str(val) if val not in (None, "", []) else "Todos"))
+        rows.append((f.etiqueta, _format_meta_value(val)))
     return rows
 
 
@@ -98,9 +130,9 @@ def _stream_csv_parts(
         part_num += 1
         current_path = tmp_dir / f"{base_name}_parte_{part_num:03d}.csv"
         current_file = open(current_path, "w", newline="", encoding="utf-8-sig")
-        current_writer = csv.DictWriter(current_file, fieldnames=columns)
+        current_writer = csv.DictWriter(current_file, fieldnames=columns, delimiter=';')
         if meta_rows and part_num == 1:
-            meta_writer = csv.writer(current_file)
+            meta_writer = csv.writer(current_file, delimiter=';')
             for label, value in meta_rows:
                 meta_writer.writerow([label, value])
             meta_writer.writerow([])

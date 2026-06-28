@@ -251,10 +251,7 @@ WHERE b.openingtime > 0
             JOIN public.mdl_role r
                 ON r.id = ra.roleid
             WHERE blr.bigbluebuttonbnid = b.id
-              AND (
-                    string_to_array(r.shortname, ',') && %(rol_usuario)s::text[]
-                 OR COALESCE(NULLIF(r.name, ''), r.shortname) ILIKE '%%' || %(rol_usuario)s || '%%'
-              )
+              AND r.shortname = ANY(%(rol_usuario)s::text[])
         )
       )
 

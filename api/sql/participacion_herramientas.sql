@@ -638,8 +638,10 @@ WHERE (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bm.programa_formacion, '')
 
   AND (
         %(rol_usuario)s IS NULL
-        OR string_to_array(bm.rol_shortnames, ',') && %(rol_usuario)s::text[]
-        OR string_to_array(bm.rol_usuario, ',') && %(rol_usuario)s::text[]
+        OR EXISTS (SELECT 1 FROM unnest(string_to_array(bm.rol_shortnames, ',')) AS _r(role)
+                   WHERE trim(_r.role) = ANY(%(rol_usuario)s::text[]))
+        OR EXISTS (SELECT 1 FROM unnest(string_to_array(bm.rol_usuario, ',')) AS _r(role)
+                   WHERE trim(_r.role) = ANY(%(rol_usuario)s::text[]))
       )
 
   AND (

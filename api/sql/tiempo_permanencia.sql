@@ -91,7 +91,9 @@ base_usuarios AS (
                 WHEN cp.startdate > EXTRACT(EPOCH FROM NOW()) THEN 'No iniciado'
                 WHEN cp.enddate > 0 AND cp.enddate < EXTRACT(EPOCH FROM NOW()) THEN 'Finalizado'
                 ELSE 'En ejecución' END = %(estado_grupo)s)
-      AND (%(rol_usuario)s IS NULL OR COALESCE(ruc.rol_shortnames, '') ILIKE '%%' || %(rol_usuario)s || '%%')
+      AND (%(rol_usuario)s IS NULL OR EXISTS (
+               SELECT 1 FROM unnest(string_to_array(COALESCE(ruc.rol_shortnames, ''), ',')) AS _r(role)
+               WHERE trim(_r.role) = ANY(%(rol_usuario)s::text[])))
       AND (%(estado_usuario)s IS NULL OR
            CASE WHEN u.deleted = 1 THEN 'Eliminado'
                 WHEN u.suspended = 1 THEN 'Suspendido'
@@ -243,7 +245,9 @@ WHERE pt.seg_total > 0
             WHEN bu.startdate > EXTRACT(EPOCH FROM NOW()) THEN 'No iniciado'
             WHEN bu.enddate > 0 AND bu.enddate < EXTRACT(EPOCH FROM NOW()) THEN 'Finalizado'
             ELSE 'En ejecución' END = %(estado_grupo)s)
-  AND (%(rol_usuario)s IS NULL OR string_to_array(bu.rol_shortnames, ',') && %(rol_usuario)s::text[])
+  AND (%(rol_usuario)s IS NULL OR EXISTS (
+           SELECT 1 FROM unnest(string_to_array(bu.rol_shortnames, ',')) AS _r(role)
+           WHERE trim(_r.role) = ANY(%(rol_usuario)s::text[])))
   AND (%(estado_usuario)s IS NULL OR bu.estado_usuario_lms = %(estado_usuario)s)
   AND (%(estado_aprendiz)s IS NULL OR 'No disponible (SOFIA Plus)' = %(estado_aprendiz)s)
   AND (%(origen_datos)s IS NULL OR
