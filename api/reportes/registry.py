@@ -64,16 +64,16 @@ OPC_ESTADO_GRUPO: list[dict] = [
 ]
 
 OPC_NIVELES: list[dict] = [
-    {"value": "",                   "label": "Todas"},
-    {"value": "Formación titulada", "label": "Formación titulada"},
-    {"value": "No definido",        "label": "No definido"},
+    {"value": "",               "label": "Todas"},
+    {"value": "Titulada",       "label": "Titulada"},
+    {"value": "Complementaria", "label": "Complementaria"},
 ]
 
 OPC_MODALIDADES: list[dict] = [
-    {"value": "",                    "label": "Todas"},
-    {"value": "Titulada virtual",    "label": "Titulada virtual"},
-    {"value": "Titulada presencial", "label": "Titulada presencial"},
-    {"value": "Titulada a distancia","label": "Titulada a distancia"},
+    {"value": "",           "label": "Todas"},
+    {"value": "Virtual",    "label": "Virtual"},
+    {"value": "A distancia","label": "A distancia"},
+    {"value": "Presencial", "label": "Presencial"},
 ]
 
 OPC_ROLES: list[dict] = [

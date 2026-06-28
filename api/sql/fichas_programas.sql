@@ -34,9 +34,19 @@ curso_parseado AS (
         SUBSTRING(c.shortname FROM '_R_([0-9]+)') AS codigo_regional,
         SUBSTRING(c.shortname FROM '_C_([0-9]+)') AS codigo_centro,
         SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') AS letra_modalidad,
-        SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_[A-Za-z]+_([0-9]+)') AS version_extraida
+        SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_[A-Za-z]+_([0-9]+)') AS version_extraida,
+
+        -- Tipo de programa según la categoría raíz del curso
+        CASE
+            WHEN rc.name ILIKE '%%complementaria%%' THEN 'Complementaria'
+            WHEN rc.name ILIKE '%%titulada%%' OR rc.name ILIKE '%%presencial%%' THEN 'Titulada'
+            ELSE 'No definido'
+        END AS tipo_programa
 
     FROM public.mdl_course c
+    LEFT JOIN public.mdl_course_categories cc ON cc.id = c.category
+    LEFT JOIN public.mdl_course_categories rc
+           ON rc.id = NULLIF(split_part(cc.path, '/', 2), '')::int
     WHERE c.id <> 1
 ),
 
@@ -136,15 +146,12 @@ SELECT
         )
     END AS "Fecha de creación del grupo",
 
-    CASE
-        WHEN cp.letra_modalidad IN ('V', 'A', 'P', 'PI') THEN 'Formación titulada'
-        ELSE 'No definido'
-    END AS "Nivel del grupo/ficha",
+    cp.tipo_programa AS "Tipo de programa",
 
     CASE
-        WHEN cp.letra_modalidad = 'V' THEN 'Titulada virtual'
-        WHEN cp.letra_modalidad = 'A' THEN 'Titulada a distancia'
-        WHEN cp.letra_modalidad IN ('P', 'PI') THEN 'Titulada presencial'
+        WHEN cp.letra_modalidad = 'V' THEN 'Virtual'
+        WHEN cp.letra_modalidad = 'A' THEN 'A distancia'
+        WHEN cp.letra_modalidad IN ('P', 'PI') THEN 'Presencial'
         ELSE 'No definido'
     END AS "Modalidad",
 
@@ -225,19 +232,15 @@ WHERE
 
   AND (
         %(nivel)s IS NULL
-        OR CASE
-               WHEN cp.letra_modalidad IN ('V', 'A', 'P', 'PI')
-               THEN 'Formación titulada'
-               ELSE 'No definido'
-           END = ANY(%(nivel)s::text[])
+        OR cp.tipo_programa = ANY(%(nivel)s::text[])
       )
 
   AND (
         %(modalidad)s IS NULL
         OR CASE
-               WHEN cp.letra_modalidad = 'V' THEN 'Titulada virtual'
-               WHEN cp.letra_modalidad = 'A' THEN 'Titulada a distancia'
-               WHEN cp.letra_modalidad IN ('P', 'PI') THEN 'Titulada presencial'
+               WHEN cp.letra_modalidad = 'V' THEN 'Virtual'
+               WHEN cp.letra_modalidad = 'A' THEN 'A distancia'
+               WHEN cp.letra_modalidad IN ('P', 'PI') THEN 'Presencial'
                ELSE 'No definido'
            END = ANY(%(modalidad)s::text[])
       )

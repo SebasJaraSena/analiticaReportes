@@ -11,8 +11,16 @@ WITH curso_parseado AS (
         SUBSTRING(c.shortname FROM '_R_([0-9]+)') AS codigo_regional,
         SUBSTRING(c.shortname FROM '_C_([0-9]+)') AS codigo_centro,
         SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') AS letra_modalidad,
-        SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_[A-Za-z]+_([0-9]+)') AS version_extraida
+        SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_[A-Za-z]+_([0-9]+)') AS version_extraida,
+        CASE
+            WHEN rc.name ILIKE '%%complementaria%%' THEN 'Complementaria'
+            WHEN rc.name ILIKE '%%titulada%%' OR rc.name ILIKE '%%presencial%%' THEN 'Titulada'
+            ELSE 'No definido'
+        END AS tipo_programa
     FROM public.mdl_course c
+    LEFT JOIN public.mdl_course_categories cc ON cc.id = c.category
+    LEFT JOIN public.mdl_course_categories rc
+           ON rc.id = NULLIF(split_part(cc.path, '/', 2), '')::int
     WHERE c.id <> 1
 ),
 roles_usuario_curso AS (
@@ -44,6 +52,7 @@ base_usuarios AS (
         cp.version_extraida,
         cp.programa_formacion,
         cp.letra_modalidad,
+        cp.tipo_programa,
         cp.codigo_regional,
         cp.codigo_centro,
         cp.startdate,
@@ -80,11 +89,11 @@ base_usuarios AS (
       AND (%(nombres_apellidos)s IS NULL OR CONCAT(u.firstname,' ',u.lastname) ILIKE '%%' || %(nombres_apellidos)s || '%%')
       AND (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(cp.programa_formacion,''), cp.fullname) ILIKE '%%' || %(nombre_programa)s || '%%')
       AND (%(codigo_programa)s IS NULL OR COALESCE(cp.codigo_programa,'') ILIKE '%%' || %(codigo_programa)s || '%%')
-      AND (%(nivel)s IS NULL OR CASE WHEN cp.letra_modalidad IN ('V','A','P','PI') THEN 'Formación titulada' ELSE 'No definido' END = ANY(%(nivel)s::text[]))
+      AND (%(nivel)s IS NULL OR cp.tipo_programa = ANY(%(nivel)s::text[]))
       AND (%(modalidad)s IS NULL OR
-           CASE WHEN cp.letra_modalidad = 'V' THEN 'Titulada virtual'
-                WHEN cp.letra_modalidad = 'A' THEN 'Titulada a distancia'
-                WHEN cp.letra_modalidad IN ('P','PI') THEN 'Titulada presencial'
+           CASE WHEN cp.letra_modalidad = 'V' THEN 'Virtual'
+                WHEN cp.letra_modalidad = 'A' THEN 'A distancia'
+                WHEN cp.letra_modalidad IN ('P','PI') THEN 'Presencial'
                 ELSE 'No definido' END = ANY(%(modalidad)s::text[]))
       AND (%(estado_grupo)s IS NULL OR
            CASE WHEN cp.visible = 0 THEN 'Oculto'
@@ -191,7 +200,7 @@ SELECT
     COALESCE(bu.codigo_programa, 'No definido') AS "Código del programa",
     COALESCE(bu.version_extraida, 'No definido') AS "Versión programa",
     COALESCE(NULLIF(bu.programa_formacion, ''), bu.nombre_ficha) AS "Nombre del programa de formación",
-    CASE WHEN bu.letra_modalidad IN ('V','A','P','PI') THEN 'Formación titulada' ELSE 'No definido' END AS "Nivel de formación",
+    bu.tipo_programa AS "Tipo de programa",
     'No disponible (SOFIA Plus)' AS "Estado del Programa",
     bu.codigo_ficha AS "Código del grupo",
     TO_CHAR(TO_TIMESTAMP(bu.startdate), 'YYYY/MM/DD HH24:MI:SS') AS "Fecha de inicio del grupo",
@@ -232,11 +241,11 @@ LEFT JOIN midb.centros cen ON cen.sed_id = NULLIF(bu.codigo_centro, '')::bigint
 WHERE pt.seg_total > 0
   AND (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bu.programa_formacion,''), bu.nombre_ficha) ILIKE '%%' || %(nombre_programa)s || '%%')
   AND (%(codigo_programa)s IS NULL OR COALESCE(bu.codigo_programa,'') ILIKE '%%' || %(codigo_programa)s || '%%')
-  AND (%(nivel)s IS NULL OR CASE WHEN bu.letra_modalidad IN ('V','A','P','PI') THEN 'Formación titulada' ELSE 'No definido' END = ANY(%(nivel)s::text[]))
+  AND (%(nivel)s IS NULL OR bu.tipo_programa = ANY(%(nivel)s::text[]))
   AND (%(modalidad)s IS NULL OR
-       CASE WHEN bu.letra_modalidad = 'V' THEN 'Titulada virtual'
-            WHEN bu.letra_modalidad = 'A' THEN 'Titulada a distancia'
-            WHEN bu.letra_modalidad IN ('P','PI') THEN 'Titulada presencial'
+       CASE WHEN bu.letra_modalidad = 'V' THEN 'Virtual'
+            WHEN bu.letra_modalidad = 'A' THEN 'A distancia'
+            WHEN bu.letra_modalidad IN ('P','PI') THEN 'Presencial'
             ELSE 'No definido' END = ANY(%(modalidad)s::text[]))
   AND (%(regional)s IS NULL OR COALESCE(reg.nombre, 'Regional ' || bu.codigo_regional, '') ILIKE '%%' || %(regional)s || '%%')
   AND (%(centro_formacion)s IS NULL OR COALESCE(cen.nombre, 'Centro ' || bu.codigo_centro, '') ILIKE '%%' || %(centro_formacion)s || '%%')

@@ -18,7 +18,7 @@ registrar(
             "foros, evaluaciones, blogs, evidencias, SCORM, sesiones, chats y anuncios."
         ),
         filtros=[
-            FiltroDefinicion("nivel",            "Nivel de Formación",               "select", opciones=OPC_NIVELES),
+            FiltroDefinicion("nivel",            "Tipo de programa",               "select", opciones=OPC_NIVELES),
             FiltroDefinicion("modalidad",         "Modalidad",                        "select", opciones=OPC_MODALIDADES),
             FiltroDefinicion("regional",          "Regional",                         "text",   placeholder="Todas"),
             FiltroDefinicion("centro_formacion",  "Centro de Formación",              "text",   placeholder="Todas"),

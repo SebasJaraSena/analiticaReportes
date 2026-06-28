@@ -28,16 +28,6 @@ class Settings(BaseSettings):
     frontend_url: str = os.getenv("REPORTES_FRONTEND_URL", "/")
     # URL path prefix when served behind a reverse proxy (e.g. /analitica)
     reportes_base_path: str = os.getenv("REPORTES_BASE_PATH", "")
-    # Comma-separated Moodle role shortnames allowed to access this system
-    moodle_allowed_roles: str = os.getenv(
-        "MOODLE_ALLOWED_ROLES",
-        "support,dataanalyst,training,analystarticulator,manager",
-    )
-
-    @property
-    def moodle_allowed_roles_set(self) -> set[str]:
-        return {r.strip() for r in self.moodle_allowed_roles.split(",") if r.strip()}
-
     # Redis
     redis_host: str = os.getenv("REDIS_HOST", "redis")
     redis_port: int = int(os.getenv("REDIS_PORT", "6379"))

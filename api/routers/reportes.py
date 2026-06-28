@@ -83,8 +83,8 @@ def _get_dynamic_filter_options() -> dict[str, list[dict[str, str]]]:
         "modalidad": [{"value": "", "label": "Todas"}],
         "nivel": [
             {"value": "", "label": "Todas"},
-            {"value": "Formación titulada", "label": "Formación titulada"},
-            {"value": "No definido", "label": "No definido"},
+            {"value": "Titulada", "label": "Titulada"},
+            {"value": "Complementaria", "label": "Complementaria"},
         ],
         "id_categoria": [{"value": "", "label": "Todas"}],
     }
@@ -109,9 +109,9 @@ def _get_dynamic_filter_options() -> dict[str, list[dict[str, str]]]:
                     WITH m AS (
                         SELECT DISTINCT
                             CASE
-                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') = 'V'  THEN 'Titulada virtual'
-                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') = 'A'  THEN 'Titulada a distancia'
-                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') IN ('P','PI') THEN 'Titulada presencial'
+                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') = 'V'  THEN 'Virtual'
+                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') = 'A'  THEN 'A distancia'
+                                WHEN SUBSTRING(shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') IN ('P','PI') THEN 'Presencial'
                             END AS modalidad
                         FROM public.mdl_course WHERE id <> 1
                     )

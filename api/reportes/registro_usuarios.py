@@ -18,7 +18,7 @@ registrar(
             "con información de rol, fechas de acceso y días de ingreso."
         ),
         filtros=[
-            FiltroDefinicion("nivel",           "Nivel del programa",               "select", opciones=OPC_NIVELES),
+            FiltroDefinicion("nivel",           "Tipo de programa",               "select", opciones=OPC_NIVELES),
             FiltroDefinicion("modalidad",        "Modalidad",                        "select", opciones=OPC_MODALIDADES),
             FiltroDefinicion("regional",         "Regional",                         "text",   placeholder="Todas"),
             FiltroDefinicion("centro_formacion", "Centro de Formación",              "text",   placeholder="Todas"),

@@ -12,7 +12,7 @@ registrar(
             "tipo de documento, estado y fechas de enrolamiento."
         ),
         filtros=[
-            FiltroDefinicion("nivel",           "Nivel del programa",           "select", opciones=OPC_NIVELES),
+            FiltroDefinicion("nivel",           "Tipo de programa",           "select", opciones=OPC_NIVELES),
             FiltroDefinicion("modalidad",        "Modalidad",                    "select", opciones=OPC_MODALIDADES),
             FiltroDefinicion("regional",         "Regional",                     "text",   placeholder="Todas"),
             FiltroDefinicion("origen_datos",     "Origen de datos",              "select", opciones=OPC_ORIGEN_DATOS),

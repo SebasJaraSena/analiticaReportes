@@ -125,14 +125,20 @@ def revoke_moodle_token(email: str) -> None:
         logger.warning("Could not revoke Moodle token for %s: %s", email, exc)
 
 
-def check_user_access(userid: int) -> tuple[bool, bool]:
-    """Return (has_access, is_admin) using a single Moodle DB connection.
+_REPORTES_CAPABILITY = "local/reporteszajuna:view"
+_CAP_ALLOW = 1
 
-    is_admin=True when user is siteadmin or has 'manager' role.
+
+def check_user_access(userid: int) -> tuple[bool, bool]:
+    """Return (has_access, is_admin) via Moodle capability local/reporteszajuna:view.
+
+    is_admin=True when user is siteadmin or has system-level 'manager' role.
+    Single DB connection for both checks.
     """
     try:
         conn = _moodle_conn()
         with conn.cursor() as cur:
+            # Siteadmin → full access immediately
             cur.execute("SELECT value FROM public.mdl_config WHERE name = 'siteadmins'")
             row = cur.fetchone()
             if row:
@@ -141,23 +147,42 @@ def check_user_access(userid: int) -> tuple[bool, bool]:
                     conn.close()
                     return True, True
 
+            # Capability check via role_assignments + role_capabilities
             cur.execute(
                 """
-                SELECT r.shortname
+                SELECT 1
                 FROM public.mdl_role_assignments ra
-                JOIN public.mdl_role r ON r.id = ra.roleid
+                JOIN public.mdl_role_capabilities rc ON rc.roleid = ra.roleid
                 JOIN public.mdl_context ctx ON ctx.id = ra.contextid
-                WHERE ra.userid = %s AND ctx.contextlevel = 10
+                WHERE ra.userid = %s
+                  AND ctx.contextlevel = 10
+                  AND rc.capability = %s
+                  AND rc.permission = %s
+                LIMIT 1
                 """,
-                (userid,),
+                (userid, _REPORTES_CAPABILITY, _CAP_ALLOW),
             )
-            roles = {r[0] for r in cur.fetchall()}
+            has_access = cur.fetchone() is not None
+
+            # is_admin via manager role at system level
+            is_admin = False
+            if has_access:
+                cur.execute(
+                    """
+                    SELECT 1
+                    FROM public.mdl_role_assignments ra
+                    JOIN public.mdl_role r ON r.id = ra.roleid
+                    JOIN public.mdl_context ctx ON ctx.id = ra.contextid
+                    WHERE ra.userid = %s AND ctx.contextlevel = 10 AND r.shortname = 'manager'
+                    LIMIT 1
+                    """,
+                    (userid,),
+                )
+                is_admin = cur.fetchone() is not None
+
         conn.close()
     except Exception as exc:
         logger.warning("Could not check user access for userid %s: %s", userid, exc)
         return False, False
 
-    allowed = settings.moodle_allowed_roles_set
-    has_access = bool(roles & allowed)
-    is_admin = "manager" in roles
     return has_access, is_admin
