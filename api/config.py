@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     moodle_host_header: str = os.getenv("MOODLE_HOST_HEADER", "")
     # Public Moodle URL visible to the browser (used for logout redirect)
     moodle_public_url: str = os.getenv("MOODLE_PUBLIC_URL", "http://localhost/zajuna")
+    # Frontend base URL — where browser lands after Moodle autologin
+    frontend_url: str = os.getenv("REPORTES_FRONTEND_URL", "/")
     # Comma-separated Moodle role shortnames allowed to access this system
     moodle_allowed_roles: str = os.getenv(
         "MOODLE_ALLOWED_ROLES",

@@ -110,6 +110,8 @@ def init_control_db() -> None:
         ADD COLUMN IF NOT EXISTS mensaje_progreso TEXT;
     """
     with _control_engine.connect() as conn:
+        # Advisory lock prevents deadlock when multiple workers start simultaneously
+        conn.execute(text("SELECT pg_advisory_xact_lock(7261836450)"))
         conn.execute(text(ddl))
         conn.execute(text(migrate_ddl))
         conn.commit()

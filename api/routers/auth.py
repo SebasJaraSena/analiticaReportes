@@ -125,8 +125,9 @@ def moodle_autologin(token: str = Query(...), db: Session = Depends(get_db)):
             user.is_admin = is_admin
             db.commit()
 
+    from api.config import settings as _s
     jwt = create_token(user.email)
-    # Return HTML that stores JWT in localStorage and redirects to app root
+    frontend_url = _s.frontend_url.rstrip('/') or '/'
     html = f"""<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>Ingresando...</title></head>
@@ -134,7 +135,7 @@ def moodle_autologin(token: str = Query(...), db: Session = Depends(get_db)):
 <script>
   localStorage.setItem('rz_token', '{jwt}');
   localStorage.setItem('rz_email', '{email}');
-  window.location.replace('/');
+  window.location.replace('{frontend_url}');
 </script>
 <p>Redirigiendo...</p>
 </body>
