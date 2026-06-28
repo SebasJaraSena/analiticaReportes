@@ -586,7 +586,7 @@ async function showProgModal() {
 
   const dmEl = document.getElementById('pm-dia-mes');
   if (!dmEl.options.length) {
-    for (let d = 1; d <= 28; d++) {
+    for (let d = 1; d <= 31; d++) {
       const o = document.createElement('option');
       o.value = d; o.textContent = 'Día ' + d;
       dmEl.appendChild(o);
@@ -643,7 +643,7 @@ function collectProgFiltros() {
     const checked = Array.from(el.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
     filtros[nombre] = checked.length > 0 ? checked : null;
   });
-  document.querySelectorAll('#pm-filtros-form input[data-pfiltro]').forEach(el => {
+  document.querySelectorAll('#pm-filtros-form input:not([type=checkbox])[data-pfiltro]').forEach(el => {
     filtros[el.dataset.pfiltro] = el.value.trim() || null;
   });
   return filtros;

@@ -78,6 +78,7 @@ def scheduler_loop(redis_conn) -> None:
                         ReporteProgramado.activo == True,
                         ReporteProgramado.proxima_ejecucion <= now,
                     )
+                    .with_for_update(skip_locked=True)
                     .all()
                 )
                 for prog in due:

@@ -72,10 +72,16 @@ def create_programado(
 ) -> dict:
     if body.frecuencia not in ("diario", "semanal", "mensual"):
         raise HTTPException(status_code=422, detail="frecuencia debe ser diario/semanal/mensual")
+    if body.formato not in ("xlsx", "csv"):
+        raise HTTPException(status_code=422, detail="formato debe ser xlsx o csv")
     if body.frecuencia == "semanal" and body.dia_semana is None:
         raise HTTPException(status_code=422, detail="dia_semana requerido para semanal")
+    if body.frecuencia == "semanal" and body.dia_semana is not None and not (0 <= body.dia_semana <= 6):
+        raise HTTPException(status_code=422, detail="dia_semana debe ser 0 (lunes) a 6 (domingo)")
     if body.frecuencia == "mensual" and body.dia_mes is None:
         raise HTTPException(status_code=422, detail="dia_mes requerido para mensual")
+    if body.frecuencia == "mensual" and body.dia_mes is not None and not (1 <= body.dia_mes <= 31):
+        raise HTTPException(status_code=422, detail="dia_mes debe ser 1–31")
     if not (0 <= body.hora <= 23):
         raise HTTPException(status_code=422, detail="hora debe ser 0–23")
     if not (0 <= body.minuto <= 59):
