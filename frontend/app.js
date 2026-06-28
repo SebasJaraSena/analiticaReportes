@@ -1,6 +1,6 @@
 'use strict';
 
-const API = '';
+const API = window.REPORTES_BASE || '';
 let currentReporteCodigo = null;
 let selectedFormat = 'xlsx';
 let pollingInterval = null;

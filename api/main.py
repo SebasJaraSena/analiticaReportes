@@ -90,10 +90,15 @@ def serve_js():
     return FileResponse(FRONTEND_DIR / "app.js", media_type="application/javascript")
 
 
+def _inject_base_path(html: str) -> str:
+    base = settings.reportes_base_path.rstrip("/")
+    return html.replace("__REPORTES_BASE__", base)
+
+
 @app.get("/", response_class=HTMLResponse)
 @app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
 def serve_spa(path: str = "") -> HTMLResponse:
     index = FRONTEND_DIR / "index.html"
     if not index.exists():
         return HTMLResponse("<h1>Frontend no encontrado</h1>", status_code=404)
-    return HTMLResponse(index.read_text(encoding="utf-8"))
+    return HTMLResponse(_inject_base_path(index.read_text(encoding="utf-8")))

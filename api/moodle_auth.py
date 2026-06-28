@@ -43,6 +43,7 @@ def get_moodle_token(username: str, password: str) -> str:
                 "service": settings.moodle_ws_service,
             },
             timeout=10,
+            follow_redirects=True,
         )
         resp.raise_for_status()
     except httpx.HTTPError as exc:

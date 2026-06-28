@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     moodle_public_url: str = os.getenv("MOODLE_PUBLIC_URL", "http://localhost/zajuna")
     # Frontend base URL — where browser lands after Moodle autologin
     frontend_url: str = os.getenv("REPORTES_FRONTEND_URL", "/")
+    # URL path prefix when served behind a reverse proxy (e.g. /analitica)
+    reportes_base_path: str = os.getenv("REPORTES_BASE_PATH", "")
     # Comma-separated Moodle role shortnames allowed to access this system
     moodle_allowed_roles: str = os.getenv(
         "MOODLE_ALLOWED_ROLES",
