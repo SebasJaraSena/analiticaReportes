@@ -24,17 +24,22 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.secret_key == "change-me-in-production":
+        raise RuntimeError("REPORTES_SECRET_KEY no configurado — cambia el valor por defecto en .env")
     init_control_db()
     logger.info("Reportes ZAJUNA iniciado. Puerto 8089.")
     yield
 
 
+_docs_url = "/api/docs" if settings.docs_enabled else None
+_redoc_url = "/api/redoc" if settings.docs_enabled else None
+
 app = FastAPI(
     title="Reportes ZAJUNA",
     description="Sistema de reportes administrativos para Moodle/ZAJUNA",
     version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
     lifespan=lifespan,
 )
 
@@ -54,11 +59,11 @@ app.include_router(programados.router)
 
 # ── Health ────────────────────────────────────────────────────────────────────
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 # ── Frontend static assets + SPA ──────────────────────────────────────────────

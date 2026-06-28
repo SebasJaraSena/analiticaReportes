@@ -29,9 +29,12 @@ def get_db():
         db.close()
 
 
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
 def get_queue() -> Queue:
-    conn = Redis.from_url(settings.redis_url)
-    return Queue("reportes", connection=conn)
+    """Singleton RQ queue — one Redis connection per process lifetime."""
+    return Queue("reportes", connection=Redis.from_url(settings.redis_url))
 
 
 def _media_type(solicitud: Solicitud) -> str:

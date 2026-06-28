@@ -57,6 +57,8 @@ class Settings(BaseSettings):
 
     # Security: own JWT secret — set REPORTES_SECRET_KEY in docker/.env-local
     secret_key: str = os.getenv("REPORTES_SECRET_KEY", "change-me-in-production")
+    # Expose /api/docs and /api/redoc — enable only for dev environments
+    docs_enabled: bool = os.getenv("REPORTES_DOCS_ENABLED", "false").lower() == "true"
 
     # CORS origins (comma-separated)
     cors_origins: str = os.getenv("REPORTES_CORS_ORIGINS", "http://localhost:8088,http://localhost:8089")

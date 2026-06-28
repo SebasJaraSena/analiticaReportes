@@ -1,3 +1,4 @@
+import json
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -118,20 +119,16 @@ def moodle_autologin(token: str = Query(...), db: Session = Depends(get_db)):
             db.commit()
 
     from api.config import settings as _s
-    jwt = create_token(user.email)
+    jwt_token = create_token(user.email)
     frontend_url = _s.frontend_url.rstrip('/') or '/'
-    html = f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Ingresando...</title></head>
-<body>
-<script>
-  localStorage.setItem('rz_token', '{jwt}');
-  localStorage.setItem('rz_email', '{email}');
-  window.location.replace('{frontend_url}');
-</script>
-<p>Redirigiendo...</p>
-</body>
-</html>"""
+    html = (
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Ingresando...</title></head>"
+        "<body><script>"
+        f"localStorage.setItem('rz_token',{json.dumps(jwt_token)});"
+        f"localStorage.setItem('rz_email',{json.dumps(email)});"
+        f"window.location.replace({json.dumps(frontend_url)});"
+        "</script><p>Redirigiendo...</p></body></html>"
+    )
     return HTMLResponse(content=html)
 
 
