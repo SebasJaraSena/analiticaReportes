@@ -14,6 +14,8 @@ registrar(
             FiltroDefinicion("hora",         "Hora",                         "text", placeholder="HH o HH:MM"),
             FiltroDefinicion("fecha_desde",  "Rango de fecha desde",         "date"),
             FiltroDefinicion("fecha_hasta",  "Rango de fecha hasta",         "date"),
+            FiltroDefinicion("sistema_operativo", "Sistema operativo",       "text", placeholder="Todas"),
+            FiltroDefinicion("navegador_web",     "Navegador web",           "text", placeholder="Todas"),
             FiltroDefinicion("pais",         "País",                         "text", placeholder="Todas"),
             FiltroDefinicion("ciudad",       "Ciudad",                       "text", placeholder="Todas"),
         ],

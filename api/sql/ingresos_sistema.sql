@@ -94,6 +94,18 @@ WHERE (
         OR i.ciudad_perfil ILIKE '%%' || %(ciudad)s || '%%'
       )
 
+  -- SO/Navegador no provienen del log estándar de Moodle (ver columnas);
+  -- el filtro compara contra el valor mostrado ('... consultar en ADI').
+  AND (
+        %(sistema_operativo)s IS NULL
+        OR 'No disponible, consultar en ADI' ILIKE '%%' || %(sistema_operativo)s || '%%'
+      )
+
+  AND (
+        %(navegador_web)s IS NULL
+        OR 'No disponible, consultar en ADI' ILIKE '%%' || %(navegador_web)s || '%%'
+      )
+
 GROUP BY
     COALESCE(ru.rol_usuario, 'Sin rol'),
     i.pais_perfil,
