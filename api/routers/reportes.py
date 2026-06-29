@@ -4,11 +4,13 @@ FastAPI router for report listing, filter hydration, preview, and job submission
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import datetime, date
 from decimal import Decimal
 from typing import Any
 
+import psycopg2.errors
 from fastapi import APIRouter, Depends, HTTPException
 from functools import lru_cache
 from pydantic import BaseModel
@@ -38,6 +40,14 @@ _ROLE_LABELS = {
 # Cache de opciones de filtros dinámicos (TTL 5 min, single-process safe)
 _DYNAMIC_FILTER_CACHE: dict[str, Any] = {"expires_at": 0.0, "options": {}}
 _DYNAMIC_FILTER_TTL = 300
+
+# Vista previa: tiempo máx. acordado 30s. Si la consulta lo excede, se
+# devuelve un mensaje en lugar de colgar (la generación completa sí funciona).
+_PREVIEW_TIMEOUT_MS = 30000
+_PREVIEW_ROWS = 50
+# Quita el ORDER BY final (de nivel superior, sin paréntesis hasta el fin) para
+# que LIMIT pueda cortar temprano. No afecta ORDER BY dentro de OVER(...)/subqueries.
+_TRAILING_ORDER_BY = re.compile(r'\bORDER\s+BY\b[^()]*$', re.IGNORECASE)
 
 
 def get_db():
@@ -240,14 +250,27 @@ def preview_reporte(
     _validate_required_filters(reporte, body.filtros or {})
     sql = reporte.load_sql()
     params = _build_params(body.filtros or {}, codigo)
-    preview_sql = f"SELECT * FROM ({sql}) AS _preview LIMIT 50"
+    # Sin el ORDER BY final, LIMIT puede cortar temprano en reportes sin agregación.
+    sql_preview = _TRAILING_ORDER_BY.sub("", sql)
+    preview_sql = f"SELECT * FROM ({sql_preview}) AS _preview LIMIT {_PREVIEW_ROWS}"
 
     try:
         with get_moodle_conn() as conn:
             with conn.cursor() as cur:
+                # Acota la vista previa al SLA acordado (30s).
+                cur.execute(f"SET LOCAL statement_timeout = {_PREVIEW_TIMEOUT_MS}")
                 cur.execute(preview_sql, params)
                 columns = [desc[0] for desc in cur.description]
                 raw_rows = cur.fetchall()
+    except psycopg2.errors.QueryCanceled:
+        logger.warning("Preview de '%s' excedió %sms con filtros %s", codigo, _PREVIEW_TIMEOUT_MS, body.filtros)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "La vista previa con estos filtros supera el límite de 30 segundos. "
+                "Genera el reporte completo para obtener los datos."
+            ),
+        )
     except Exception as exc:
         logger.error("Error en preview de '%s': %s", codigo, exc)
         raise HTTPException(status_code=500, detail=f"Error ejecutando la consulta: {exc}")
