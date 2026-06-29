@@ -286,6 +286,10 @@ function startPolling(solicitudId) {
         showAlert('filtros-alert', 'success',
           `✅ Reporte listo. <a href="#" onclick="doDownload(${solicitudId}, event)" style="color:var(--accent);font-weight:600;">Descargar ahora</a>`,
           true);
+      } else if (data.estado === 'SIN_RESULTADOS') {
+        stopPolling();
+        showAlert('filtros-alert', 'warning',
+          `⚠️ ${data.mensaje_error || 'Los datos ingresados no corresponden. Por favor validar.'}`);
       } else if (data.estado === 'ERROR') {
         stopPolling();
         showAlert('filtros-alert', 'error', `❌ Error al generar el reporte: ${data.mensaje_error || 'Error desconocido'}`);
@@ -329,7 +333,10 @@ async function loadSolicitudes() {
       const badgeClass = {
         PENDIENTE: 'badge-pending', PROCESANDO: 'badge-process',
         FINALIZADO: 'badge-done',   ERROR: 'badge-error', CANCELADO: 'badge-error',
+        SIN_RESULTADOS: 'badge-pending',
       }[s.estado] || 'badge-pending';
+
+      const estadoLabel = s.estado === 'SIN_RESULTADOS' ? 'Sin datos' : s.estado;
 
       const size = s.archivo_tamano
         ? (s.archivo_tamano > 1048576
@@ -351,13 +358,15 @@ async function loadSolicitudes() {
         ? `<button class="btn btn-danger btn-sm" onclick="cancelSolicitud(${s.id}, event)">Cancelar</button>`
         : s.estado === 'CANCELADO'
         ? `<span class="text-muted text-sm">Cancelado</span>`
-        : `<span class="badge ${badgeClass}">${s.estado}</span>`;
+        : s.estado === 'SIN_RESULTADOS'
+        ? `<span title="${s.mensaje_error || ''}" class="text-sm" style="color:var(--warning,#b8860b);cursor:help;">Sin datos ⓘ</span>`
+        : `<span class="badge ${badgeClass}">${estadoLabel}</span>`;
 
       return `<tr>
         <td>${s.id}</td>
         <td><strong>${s.reporte_nombre}</strong><br><span class="text-muted text-sm">${s.reporte_codigo}</span></td>
         <td>${(s.formato || 'xlsx').toUpperCase()}</td>
-        <td><span class="badge ${badgeClass}">${s.estado}</span></td>
+        <td><span class="badge ${badgeClass}">${estadoLabel}</span></td>
         <td class="nowrap">${progress}</td>
         <td class="nowrap">${fmtDate(s.fecha_solicitud)}</td>
         <td class="nowrap">${fmtDate(s.fecha_fin)}</td>
@@ -461,7 +470,7 @@ async function previewReporte() {
     renderPreviewChart(data);
 
     if (!data.rows.length) {
-      wrap.innerHTML = '<div class="empty" style="padding:1.5rem">Sin resultados con los filtros actuales.</div>';
+      wrap.innerHTML = '<div class="empty" style="padding:1.5rem">Los datos ingresados no corresponden. Por favor validar.</div>';
       countEl.textContent = '';
       document.getElementById('preview-title').textContent = 'Vista previa — sin resultados';
       return;
@@ -702,7 +711,7 @@ async function saveProgramado() {
 // ── Alert helper ──────────────────────────────────────────────────────────────
 function showAlert(id, type, msg, isHtml = false) {
   const el = document.getElementById(id);
-  el.className = 'alert alert-' + (type === 'success' ? 'success' : type === 'info' ? 'info' : 'error');
+  el.className = 'alert alert-' + (type === 'success' ? 'success' : type === 'info' ? 'info' : type === 'warning' ? 'warning' : 'error');
   if (isHtml) el.innerHTML = msg; else el.textContent = msg;
   el.classList.remove('hidden');
 }

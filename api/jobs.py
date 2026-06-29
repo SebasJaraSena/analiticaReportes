@@ -488,6 +488,23 @@ def process_report_job(solicitud_id: int) -> None:
                     logger.warning("[%d] No se pudo eliminar parte temporal: %s", solicitud_id, part_path)
             return
 
+        # Sin filas: no se genera archivo descargable. Se informa al usuario
+        # que los datos no corresponden (estado dedicado, sin descarga).
+        if total_rows == 0:
+            logger.info("[%d] Consulta sin resultados — no se genera archivo.", solicitud_id)
+            for part_path, _ in parts:
+                Path(part_path).unlink(missing_ok=True)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            tmp_dir = None
+            solicitud.estado = "SIN_RESULTADOS"
+            solicitud.fecha_fin = datetime.now()
+            solicitud.filas_procesadas = 0
+            solicitud.archivo_ruta = None
+            solicitud.archivo_nombre = None
+            solicitud.mensaje_error = "Los datos ingresados no corresponden. Por favor validar."
+            db.commit()
+            return
+
         if len(parts) == 1:
             final_path, filename = _output_path(
                 solicitud_id, solicitud.usuario_email or "anonimo", formato
