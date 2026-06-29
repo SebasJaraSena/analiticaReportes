@@ -12,7 +12,7 @@ _ESTADO_APRENDIZ = [
 registrar(
     ReporteDefinicion(
         codigo="fichas_programas",
-        nombre="Grupos y Programas de Formación",
+        nombre="Fichas y Programas de Formación",
         descripcion=(
             "Listado de grupos/fichas con programa, nivel, modalidad, regional, "
             "centro y conteo de instructores/aprendices activos e inactivos."
