@@ -39,9 +39,9 @@ roles_usuario AS (
 SELECT
     COALESCE(ru.rol_usuario, 'Sin rol') AS "Rol de usuario",
 
-    'No disponible en Moodle estándar' AS "Sistema operativo",
+    'No disponible, consultar en ADI' AS "Sistema operativo",
 
-    'No disponible en Moodle estándar' AS "Navegador web",
+    'No disponible, consultar en ADI' AS "Navegador web",
 
     i.pais_perfil AS "País registrado en perfil",
 
