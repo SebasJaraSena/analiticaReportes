@@ -109,6 +109,57 @@ def create_programado(
     return _to_dict(prog)
 
 
+def _validate_schedule(frecuencia: str, formato: str, dia_semana, dia_mes, hora: int, minuto: int) -> None:
+    if frecuencia not in ("diario", "semanal", "mensual"):
+        raise HTTPException(status_code=422, detail="frecuencia debe ser diario/semanal/mensual")
+    if formato not in ("xlsx", "csv"):
+        raise HTTPException(status_code=422, detail="formato debe ser xlsx o csv")
+    if frecuencia == "semanal" and dia_semana is None:
+        raise HTTPException(status_code=422, detail="dia_semana requerido para semanal")
+    if frecuencia == "semanal" and dia_semana is not None and not (0 <= dia_semana <= 6):
+        raise HTTPException(status_code=422, detail="dia_semana debe ser 0 (lunes) a 6 (domingo)")
+    if frecuencia == "mensual" and dia_mes is None:
+        raise HTTPException(status_code=422, detail="dia_mes requerido para mensual")
+    if frecuencia == "mensual" and dia_mes is not None and not (1 <= dia_mes <= 31):
+        raise HTTPException(status_code=422, detail="dia_mes debe ser 1–31")
+    if not (0 <= hora <= 23):
+        raise HTTPException(status_code=422, detail="hora debe ser 0–23")
+    if not (0 <= minuto <= 59):
+        raise HTTPException(status_code=422, detail="minuto debe ser 0–59")
+
+
+@router.put("/{prog_id}")
+def update_programado(
+    prog_id: int,
+    body: CreateRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> dict:
+    prog = db.get(ReporteProgramado, prog_id)
+    if prog is None or prog.usuario_email != current_user:
+        raise HTTPException(status_code=404, detail="Programación no encontrada.")
+    _validate_schedule(body.frecuencia, body.formato, body.dia_semana, body.dia_mes, body.hora, body.minuto)
+
+    prog.nombre = body.nombre
+    prog.reporte_codigo = body.reporte_codigo
+    prog.reporte_nombre = body.reporte_nombre
+    prog.filtros = body.filtros
+    prog.formato = body.formato
+    prog.frecuencia = body.frecuencia
+    prog.dia_semana = body.dia_semana
+    prog.dia_mes = body.dia_mes
+    prog.hora = body.hora
+    prog.minuto = body.minuto
+    # Recalcula próxima ejecución solo si está activa
+    if prog.activo:
+        prog.proxima_ejecucion = calc_next(
+            body.frecuencia, body.dia_semana, body.dia_mes, body.hora, body.minuto
+        )
+    db.commit()
+    db.refresh(prog)
+    return _to_dict(prog)
+
+
 @router.put("/{prog_id}/toggle")
 def toggle_programado(
     prog_id: int,

@@ -522,6 +522,7 @@ async function loadProgramados() {
     const res  = await authFetch(API + '/api/programados');
     if (!res.ok) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Sin acceso.</td></tr>'; return; }
     const rows = await res.json();
+    _progRows = rows;
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay reportes programados. Crea el primero.</td></tr>';
       return;
@@ -541,6 +542,7 @@ async function loadProgramados() {
           ? '<span class="badge badge-done">Activo</span>'
           : '<span class="badge badge-error">Inactivo</span>'}</td>
         <td class="nowrap">
+          <button class="btn btn-outline btn-sm" onclick="editProg(${p.id})">Editar</button>
           <button class="btn btn-outline btn-sm" onclick="toggleProg(${p.id})">${p.activo ? 'Pausar' : 'Activar'}</button>
           <button class="btn btn-delete btn-sm" onclick="deleteProg(${p.id})">Eliminar</button>
         </td>
@@ -569,10 +571,18 @@ async function deleteProg(id) {
 
 // ── Programados modal ─────────────────────────────────────────────────────────
 let _progReporteList = [];
+let _progRows = [];
+let _editingProgId = null;
 
-async function showProgModal() {
+async function showProgModal(prog = null) {
+  _editingProgId = prog ? prog.id : null;
   document.getElementById('prog-modal-alert').className = 'hidden';
-  document.getElementById('pm-nombre').value = '';
+  document.querySelector('#prog-modal .modal-title').textContent =
+    prog ? 'Editar programación de reporte' : 'Nueva programación de reporte';
+  document.getElementById('pm-save-btn').textContent =
+    prog ? 'Guardar cambios' : 'Guardar programación';
+
+  document.getElementById('pm-nombre').value = prog?.nombre || '';
   document.getElementById('pm-reporte').value = '';
   document.getElementById('pm-filtros-wrap').classList.add('hidden');
   document.getElementById('pm-filtros-form').innerHTML = '';
@@ -614,9 +624,49 @@ async function showProgModal() {
   });
 
   document.getElementById('prog-modal').classList.add('open');
+
+  // Modo edición: prefijar todos los campos (filtros son asíncronos)
+  if (prog) {
+    sel.value = prog.reporte_codigo;
+    document.getElementById('pm-minuto').value = prog.minuto;
+    horaEl.value = prog.hora;
+    document.querySelector(`input[name="pm-fmt"][value="${prog.formato}"]`)?.click();
+    const frecRadio = document.querySelector(`input[name="pm-frec"][value="${prog.frecuencia}"]`);
+    if (frecRadio) { frecRadio.checked = true; updateFrecFields(); }
+    if (prog.frecuencia === 'semanal' && prog.dia_semana != null)
+      document.getElementById('pm-dia-semana').value = prog.dia_semana;
+    if (prog.frecuencia === 'mensual' && prog.dia_mes != null)
+      document.getElementById('pm-dia-mes').value = prog.dia_mes;
+    await loadProgFiltros();
+    _applyProgFiltros(prog.filtros || {});
+  }
+}
+
+async function editProg(id) {
+  const prog = _progRows.find(p => p.id === id);
+  if (!prog) return;
+  await showProgModal(prog);
+}
+
+// Aplica valores guardados a los inputs de filtros ya renderizados
+function _applyProgFiltros(filtros) {
+  Object.entries(filtros || {}).forEach(([nombre, val]) => {
+    if (val == null) return;
+    const group = document.getElementById('pf_' + nombre);
+    if (group) {
+      const vals = Array.isArray(val) ? val.map(String) : [String(val)];
+      group.querySelectorAll('input[type=checkbox]').forEach(cb => {
+        cb.checked = vals.includes(cb.value);
+      });
+    } else {
+      const input = document.querySelector(`#pm-filtros-form [data-pfiltro="${nombre}"]:not([type=checkbox])`);
+      if (input) input.value = Array.isArray(val) ? val.join(',') : val;
+    }
+  });
 }
 
 function closeProgModal() {
+  _editingProgId = null;
   document.getElementById('prog-modal').classList.remove('open');
 }
 
@@ -659,6 +709,7 @@ async function saveProgramado() {
   const alertEl = document.getElementById('prog-modal-alert');
   alertEl.className = 'hidden';
   const btn = document.getElementById('pm-save-btn');
+  const savingLabel = btn.textContent;
   btn.disabled = true; btn.textContent = 'Guardando…';
 
   const reporte_codigo = document.getElementById('pm-reporte').value;
@@ -670,11 +721,11 @@ async function saveProgramado() {
 
   if (!reporte_codigo) {
     alertEl.className = 'alert alert-error'; alertEl.textContent = 'Seleccioná un reporte.';
-    btn.disabled = false; btn.textContent = 'Guardar programación'; return;
+    btn.disabled = false; btn.textContent = savingLabel; return;
   }
   if (!frecuencia) {
     alertEl.className = 'alert alert-error'; alertEl.textContent = 'Seleccioná una frecuencia.';
-    btn.disabled = false; btn.textContent = 'Guardar programación'; return;
+    btn.disabled = false; btn.textContent = savingLabel; return;
   }
 
   const body = {
@@ -686,9 +737,11 @@ async function saveProgramado() {
   if (frecuencia === 'semanal') body.dia_semana = parseInt(document.getElementById('pm-dia-semana').value);
   if (frecuencia === 'mensual') body.dia_mes    = parseInt(document.getElementById('pm-dia-mes').value);
 
+  const url    = _editingProgId ? API + '/api/programados/' + _editingProgId : API + '/api/programados';
+  const method = _editingProgId ? 'PUT' : 'POST';
   try {
-    const res = await authFetch(API + '/api/programados', {
-      method: 'POST',
+    const res = await authFetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
@@ -704,7 +757,7 @@ async function saveProgramado() {
       alertEl.className = 'alert alert-error'; alertEl.textContent = 'Error de conexión.';
     }
   } finally {
-    btn.disabled = false; btn.textContent = 'Guardar programación';
+    btn.disabled = false; btn.textContent = savingLabel;
   }
 }
 
