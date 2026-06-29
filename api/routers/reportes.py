@@ -95,6 +95,7 @@ def _get_dynamic_filter_options() -> dict[str, list[dict[str, str]]]:
             {"value": "", "label": "Todas"},
             {"value": "Titulada", "label": "Titulada"},
             {"value": "Complementaria", "label": "Complementaria"},
+            {"value": "Otros", "label": "Otros"},
         ],
         "id_categoria": [{"value": "", "label": "Todas"}],
     }

@@ -33,9 +33,10 @@ WITH curso_parseado AS (
 
         -- Tipo de programa según la categoría raíz del curso
         CASE
+            WHEN rc.name ILIKE '%%semilla%%' THEN 'Otros'
             WHEN rc.name ILIKE '%%complementaria%%' THEN 'Complementaria'
             WHEN rc.name ILIKE '%%titulada%%' OR rc.name ILIKE '%%presencial%%' THEN 'Titulada'
-            ELSE 'No definido'
+            ELSE 'Otros'
         END AS tipo_programa
 
     FROM public.mdl_course c

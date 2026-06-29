@@ -67,6 +67,7 @@ OPC_NIVELES: list[dict] = [
     {"value": "",               "label": "Todas"},
     {"value": "Titulada",       "label": "Titulada"},
     {"value": "Complementaria", "label": "Complementaria"},
+    {"value": "Otros",          "label": "Otros"},
 ]
 
 OPC_MODALIDADES: list[dict] = [

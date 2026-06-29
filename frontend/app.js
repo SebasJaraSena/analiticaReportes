@@ -195,6 +195,7 @@ async function openFiltros(codigo) {
     document.getElementById('filtros-titulo').textContent = data.nombre;
     document.getElementById('filtros-desc').textContent   = data.descripcion;
     form.innerHTML = _renderFiltros(data.filtros, 'f_', 'data-filtro');
+    _wireOtrosToggle('filtros-form', 'f_');
   } catch (e) {
     if (e.message !== 'Unauthorized')
       showAlert('filtros-alert', 'error', 'Error cargando filtros del reporte.');
@@ -221,6 +222,63 @@ function _renderFiltros(filtros, idPrefix, dataAttr) {
              placeholder="${f.placeholder || ''}"/>
     </div>`;
   }).join('');
+}
+
+// ── Modo "Otros" (cursos manuales/semilla sin Sofía) ──────────────────────────
+// Al elegir tipo de programa = "Otros" se deshabilitan los campos que no aplican
+// (Regional, Centro, Modalidad, Estado Sofía, Origen) y estado del grupo queda
+// limitado a "En ejecución"/"Finalizado".
+const _OTROS_DISABLE = ['regional', 'centro_formacion', 'modalidad', 'estado_aprendiz', 'origen_datos'];
+const _OTROS_ESTADO_BLOQUEADOS = ['No iniciado', 'Oculto'];
+
+function _wireOtrosToggle(containerId, idPrefix) {
+  const nivelGroup = document.getElementById(idPrefix + 'nivel');
+  if (!nivelGroup) return;
+  const apply = () => _applyOtrosMode(containerId, idPrefix);
+  nivelGroup.querySelectorAll('input[type=checkbox]').forEach(cb =>
+    cb.addEventListener('change', apply));
+  apply();
+}
+
+function _setFilterDisabled(elId, disabled) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.closest('.form-group')?.classList.toggle('filtro-disabled', disabled);
+  if (el.classList.contains('checkbox-group')) {
+    el.querySelectorAll('input').forEach(i => { i.disabled = disabled; if (disabled) i.checked = false; });
+  } else {
+    el.disabled = disabled;
+    if (disabled) el.value = '';
+  }
+}
+
+function _applyOtrosMode(containerId, idPrefix) {
+  const nivelGroup = document.getElementById(idPrefix + 'nivel');
+  if (!nivelGroup) return;
+  const otrosCb = nivelGroup.querySelector('input[value="Otros"]');
+  const otros = !!(otrosCb && otrosCb.checked);
+
+  _OTROS_DISABLE.forEach(n => _setFilterDisabled(idPrefix + n, otros));
+
+  // Otras opciones de tipo de programa quedan bloqueadas en modo Otros
+  nivelGroup.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    if (cb.value !== 'Otros') {
+      cb.disabled = otros;
+      if (otros) cb.checked = false;
+      cb.closest('.checkbox-item')?.classList.toggle('disabled', otros);
+    }
+  });
+
+  // Estado del grupo: en modo Otros solo "En ejecución" / "Finalizado"
+  const egGroup = document.getElementById(idPrefix + 'estado_grupo');
+  if (egGroup) {
+    egGroup.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      const bloq = _OTROS_ESTADO_BLOQUEADOS.includes(cb.value);
+      cb.disabled = otros && bloq;
+      if (otros && bloq) cb.checked = false;
+      cb.closest('.checkbox-item')?.classList.toggle('disabled', otros && bloq);
+    });
+  }
 }
 
 // ── Format toggle ─────────────────────────────────────────────────────────────
@@ -686,6 +744,7 @@ async function loadProgFiltros() {
     const res  = await authFetch(API + '/api/reportes/' + codigo + '/filtros');
     const data = await res.json();
     form.innerHTML = _renderFiltros(data.filtros, 'pf_', 'data-pfiltro');
+    _wireOtrosToggle('pm-filtros-form', 'pf_');
     wrap.classList.remove('hidden');
   } catch (e) {
     if (e.message !== 'Unauthorized') { wrap.classList.add('hidden'); form.innerHTML = ''; }

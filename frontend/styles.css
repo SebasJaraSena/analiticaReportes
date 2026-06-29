@@ -173,6 +173,10 @@ h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: .3rem; }
   flex-shrink: 0;
 }
 
+/* Filtros deshabilitados por modo "Otros" */
+.form-group.filtro-disabled { opacity: .45; pointer-events: none; }
+.checkbox-item.disabled { opacity: .4; pointer-events: none; }
+
 .form-actions {
   margin-top: 1.25rem;
   padding-top: 1rem;

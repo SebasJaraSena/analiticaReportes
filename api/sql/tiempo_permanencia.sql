@@ -13,9 +13,10 @@ WITH curso_parseado AS (
         SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_([A-Za-z]+)_') AS letra_modalidad,
         SUBSTRING(c.shortname FROM '^[0-9]*P_[0-9]+_[A-Za-z]+_([0-9]+)') AS version_extraida,
         CASE
+            WHEN rc.name ILIKE '%%semilla%%' THEN 'Otros'
             WHEN rc.name ILIKE '%%complementaria%%' THEN 'Complementaria'
             WHEN rc.name ILIKE '%%titulada%%' OR rc.name ILIKE '%%presencial%%' THEN 'Titulada'
-            ELSE 'No definido'
+            ELSE 'Otros'
         END AS tipo_programa
     FROM public.mdl_course c
     LEFT JOIN public.mdl_course_categories cc ON cc.id = c.category
