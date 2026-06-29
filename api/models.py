@@ -6,6 +6,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import SmallInteger
 
+from api.scheduler import now_bogota
+
 
 class Base(DeclarativeBase):
     pass
@@ -31,7 +33,7 @@ class Solicitud(Base):
     fecha_ultimo_progreso: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
     mensaje_progreso: Mapped[str | None] = mapped_column(Text)
     fecha_solicitud: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), nullable=False, server_default=func.now()
+        DateTime(timezone=False), nullable=False, default=now_bogota, server_default=func.now()
     )
     fecha_inicio: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
     fecha_fin: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
@@ -78,7 +80,7 @@ class ReporteProgramado(Base):
     ultima_ejecucion: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
     proxima_ejecucion: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), nullable=False, default=datetime.now
+        DateTime(timezone=False), nullable=False, default=now_bogota
     )
 
 
@@ -92,5 +94,5 @@ class ReporteUser(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), nullable=False, default=datetime.now
+        DateTime(timezone=False), nullable=False, default=now_bogota
     )

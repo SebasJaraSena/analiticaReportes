@@ -8,10 +8,20 @@ import calendar
 import logging
 import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
 DIAS_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+# Zona horaria de Colombia. Se usa explícitamente para no depender del TZ del
+# contenedor: la hora programada es siempre hora local de Bogotá (UTC-5).
+BOGOTA = ZoneInfo("America/Bogota")
+
+
+def now_bogota() -> datetime:
+    """Hora actual de Bogotá como datetime naive (para columnas timezone=False)."""
+    return datetime.now(BOGOTA).replace(tzinfo=None)
 
 
 def calc_next(
@@ -22,7 +32,7 @@ def calc_next(
     minuto: int,
     from_dt: datetime | None = None,
 ) -> datetime:
-    now = from_dt or datetime.now()
+    now = from_dt or now_bogota()
 
     if frecuencia == "diario":
         candidate = now.replace(hour=hora, minute=minuto, second=0, microsecond=0)
@@ -70,7 +80,7 @@ def scheduler_loop(redis_conn) -> None:
 
     while True:
         try:
-            now = datetime.now()
+            now = now_bogota()
             with ControlSessionLocal() as db:
                 due = (
                     db.query(ReporteProgramado)
