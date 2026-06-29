@@ -83,19 +83,41 @@ _STATIC_TYPES = {
 }
 
 
+# Revalidar siempre: el navegador usa ETag, solo re-descarga si cambió.
+_NO_CACHE = {"Cache-Control": "no-cache, must-revalidate"}
+
+
 @app.get("/styles.css", include_in_schema=False)
 def serve_css():
-    return FileResponse(FRONTEND_DIR / "styles.css", media_type="text/css")
+    return FileResponse(FRONTEND_DIR / "styles.css", media_type="text/css", headers=_NO_CACHE)
 
 
 @app.get("/app.js", include_in_schema=False)
 def serve_js():
-    return FileResponse(FRONTEND_DIR / "app.js", media_type="application/javascript")
+    return FileResponse(FRONTEND_DIR / "app.js", media_type="application/javascript", headers=_NO_CACHE)
+
+
+def _asset_version() -> str:
+    """Token de versión basado en el mtime de los assets (cache-busting)."""
+    try:
+        mtimes = [
+            (FRONTEND_DIR / f).stat().st_mtime
+            for f in ("app.js", "styles.css")
+            if (FRONTEND_DIR / f).exists()
+        ]
+        return str(int(max(mtimes))) if mtimes else "0"
+    except OSError:
+        return "0"
 
 
 def _inject_base_path(html: str) -> str:
     base = settings.reportes_base_path.rstrip("/")
-    return html.replace("__REPORTES_BASE__", base)
+    html = html.replace("__REPORTES_BASE__", base)
+    # Añade ?v=<mtime> a app.js y styles.css → fuerza recarga al cambiar.
+    v = _asset_version()
+    html = html.replace("/app.js\"", f"/app.js?v={v}\"")
+    html = html.replace("/styles.css\"", f"/styles.css?v={v}\"")
+    return html
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -104,4 +126,7 @@ def serve_spa(path: str = "") -> HTMLResponse:
     index = FRONTEND_DIR / "index.html"
     if not index.exists():
         return HTMLResponse("<h1>Frontend no encontrado</h1>", status_code=404)
-    return HTMLResponse(_inject_base_path(index.read_text(encoding="utf-8")))
+    return HTMLResponse(
+        _inject_base_path(index.read_text(encoding="utf-8")),
+        headers=_NO_CACHE,
+    )
