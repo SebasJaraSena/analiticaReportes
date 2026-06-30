@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Control DB (Superset's PostgreSQL — stores report requests)
-    control_db_host: str = os.getenv("DATABASE_HOST", "db")
+    control_db_host: str = os.getenv("DATABASE_HOST", "host.docker.internal")
     control_db_port: int = int(os.getenv("DATABASE_PORT", "5432"))
     control_db_name: str = os.getenv("DATABASE_DB", "superset")
     control_db_user: str = os.getenv("DATABASE_USER", "superset")
