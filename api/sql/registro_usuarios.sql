@@ -279,12 +279,12 @@ WHERE u.deleted = 0
 
   AND (
         %(regional)s IS NULL
-        OR COALESCE(reg.nombre, 'Regional ' || cp.codigo_regional, '') ILIKE '%%' || %(regional)s || '%%'
+        OR COALESCE(reg.nombre, 'Regional ' || cp.codigo_regional, '') = ANY(%(regional)s::text[])
       )
 
   AND (
         %(centro_formacion)s IS NULL
-        OR COALESCE(cen.nombre, 'Centro ' || cp.codigo_centro, '') ILIKE '%%' || %(centro_formacion)s || '%%'
+        OR COALESCE(cen.nombre, 'Centro ' || cp.codigo_centro, '') = ANY(%(centro_formacion)s::text[])
       )
 
   AND (

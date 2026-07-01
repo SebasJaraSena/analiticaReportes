@@ -248,8 +248,8 @@ WHERE pt.seg_total > 0
             WHEN bu.letra_modalidad = 'A' THEN 'A distancia'
             WHEN bu.letra_modalidad IN ('P','PI') THEN 'Presencial'
             ELSE 'No definido' END = ANY(%(modalidad)s::text[]))
-  AND (%(regional)s IS NULL OR COALESCE(reg.nombre, 'Regional ' || bu.codigo_regional, '') ILIKE '%%' || %(regional)s || '%%')
-  AND (%(centro_formacion)s IS NULL OR COALESCE(cen.nombre, 'Centro ' || bu.codigo_centro, '') ILIKE '%%' || %(centro_formacion)s || '%%')
+  AND (%(regional)s IS NULL OR COALESCE(reg.nombre, 'Regional ' || bu.codigo_regional, '') = ANY(%(regional)s::text[]))
+  AND (%(centro_formacion)s IS NULL OR COALESCE(cen.nombre, 'Centro ' || bu.codigo_centro, '') = ANY(%(centro_formacion)s::text[]))
   AND (%(estado_grupo)s IS NULL OR
        CASE WHEN bu.visible = 0 THEN 'Oculto'
             WHEN bu.startdate > EXTRACT(EPOCH FROM NOW()) THEN 'No iniciado'

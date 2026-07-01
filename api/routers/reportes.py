@@ -98,6 +98,8 @@ def _get_dynamic_filter_options() -> dict[str, list[dict[str, str]]]:
             {"value": "Otros", "label": "Otros"},
         ],
         "id_categoria": [{"value": "", "label": "Todas"}],
+        "regional": [{"value": "", "label": "Todas"}],
+        "centro_formacion": [{"value": "", "label": "Todas"}],
     }
 
     try:
@@ -137,6 +139,20 @@ def _get_dynamic_filter_options() -> dict[str, list[dict[str, str]]]:
                 )
                 for row in cur.fetchall():
                     options["id_categoria"].append({"value": str(row["id"]), "label": row["name"]})
+
+                # Regionales y centros desde midb (catálogo institucional). El valor
+                # es el nombre porque el SQL filtra por reg.nombre / cen.nombre.
+                cur.execute(
+                    "SELECT DISTINCT nombre FROM midb.regionales WHERE nombre <> '' ORDER BY nombre"
+                )
+                for row in cur.fetchall():
+                    options["regional"].append({"value": row["nombre"], "label": row["nombre"]})
+
+                cur.execute(
+                    "SELECT DISTINCT nombre FROM midb.centros WHERE nombre <> '' ORDER BY nombre"
+                )
+                for row in cur.fetchall():
+                    options["centro_formacion"].append({"value": row["nombre"], "label": row["nombre"]})
     except Exception as exc:
         logger.warning("No fue posible cargar filtros dinámicos desde Moodle: %s", exc)
 

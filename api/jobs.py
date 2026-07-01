@@ -61,7 +61,7 @@ def _coerce_text_array(value: Any) -> Any:
 
 
 _ARRAY_FILTER_PARAMS = frozenset({
-    "rol_usuario", "nivel", "modalidad",
+    "rol_usuario", "nivel", "modalidad", "regional", "centro_formacion",
 })
 
 

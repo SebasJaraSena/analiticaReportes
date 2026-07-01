@@ -624,12 +624,12 @@ WHERE (%(nombre_programa)s IS NULL OR COALESCE(NULLIF(bm.programa_formacion, '')
 
   AND (
         %(regional)s IS NULL
-        OR COALESCE(reg.nombre, 'Regional ' || bm.codigo_regional, '') ILIKE '%%' || %(regional)s || '%%'
+        OR COALESCE(reg.nombre, 'Regional ' || bm.codigo_regional, '') = ANY(%(regional)s::text[])
       )
 
   AND (
         %(centro_formacion)s IS NULL
-        OR COALESCE(cen.nombre, 'Centro ' || bm.codigo_centro, '') ILIKE '%%' || %(centro_formacion)s || '%%'
+        OR COALESCE(cen.nombre, 'Centro ' || bm.codigo_centro, '') = ANY(%(centro_formacion)s::text[])
       )
 
   AND (
